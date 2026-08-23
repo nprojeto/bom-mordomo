@@ -262,7 +262,7 @@ input:focus, select:focus, textarea:focus {
   .tabela-rolagem table { min-width: 620px; }
 
   .menu-mobile {
-    display: grid; grid-template-columns: repeat(6, 1fr);
+    display: grid; grid-template-columns: repeat(7, 1fr);
     position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
     background: var(--tinta); border-top: 2px solid var(--latao);
     padding: 6px 2px calc(6px + env(safe-area-inset-bottom));

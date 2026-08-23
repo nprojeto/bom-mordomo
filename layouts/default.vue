@@ -9,6 +9,7 @@ const itens = [
   { para: '/',            ic: '◈', txt: 'Painel' },
   { para: '/calendario',  ic: '▦', txt: 'Calendário' },
   { para: '/contas',      ic: '☰', txt: 'Contas' },
+  { para: '/gastos',      ic: '◍', txt: 'Gastos' },
   { para: '/transacoes',  ic: '↹', txt: 'Cartão' },
   { para: '/reservas',    ic: '◉', txt: 'Reservas' },
   { para: '/ajustes',     ic: '⚙', txt: 'Ajustes' }
