@@ -1,0 +1,280 @@
+<script setup lang="ts">
+const api = useApi()
+
+const lista = ref<any[]>([])
+const categorias = ref<any[]>([])
+const carregando = ref(true)
+const abrindo = ref(false)
+const salvando = ref(false)
+const erro = ref('')
+const filtro = ref<'todos' | 'despesa' | 'receita'>('todos')
+
+const vazio = () => ({
+  id: null as string | null,
+  descricao: '',
+  tipo: 'despesa',
+  modalidade: 'recorrente',
+  categoria_id: '',
+  valor: '',
+  frequencia: 'mensal',
+  data_inicio: hojeISO(),
+  data_fim: '',
+  total_parcelas: '',
+  dia_vencimento: new Date().getDate(),
+  credor: '',
+  forma_pagamento: '',
+  observacao: ''
+})
+
+const form = ref(vazio())
+
+const catsFiltradas = computed(() =>
+  categorias.value.filter((c) => c.tipo === form.value.tipo))
+
+const listaFiltrada = computed(() =>
+  filtro.value === 'todos' ? lista.value : lista.value.filter((c) => c.tipo === filtro.value))
+
+const rotuloModalidade: Record<string, string> = {
+  unica: 'Uma vez', recorrente: 'Todo mês', parcelada: 'Parcelada'
+}
+
+async function carregar() {
+  carregando.value = true
+  const [c, k] = await Promise.all([api.get('/compromissos'), api.get('/categorias')])
+  lista.value = c ?? []
+  categorias.value = k ?? []
+  carregando.value = false
+}
+
+function novo() { form.value = vazio(); erro.value = ''; abrindo.value = true }
+
+function editar(c: any) {
+  form.value = {
+    ...vazio(), ...c,
+    categoria_id: c.categoria_id ?? '',
+    data_fim: c.data_fim ?? '',
+    total_parcelas: c.total_parcelas ?? '',
+    credor: c.credor ?? '',
+    forma_pagamento: c.forma_pagamento ?? '',
+    observacao: c.observacao ?? ''
+  }
+  erro.value = ''
+  abrindo.value = true
+}
+
+async function salvar() {
+  erro.value = ''
+  if (!form.value.descricao.trim()) { erro.value = 'Dê um nome para esta conta.'; return }
+  if (!Number(form.value.valor)) { erro.value = 'Informe o valor.'; return }
+  if (form.value.modalidade === 'parcelada' && !Number(form.value.total_parcelas)) {
+    erro.value = 'Informe quantas parcelas.'; return
+  }
+
+  salvando.value = true
+  const corpo: any = {
+    descricao: form.value.descricao.trim(),
+    tipo: form.value.tipo,
+    modalidade: form.value.modalidade,
+    categoria_id: form.value.categoria_id || null,
+    valor: Number(form.value.valor),
+    frequencia: form.value.frequencia,
+    data_inicio: form.value.data_inicio,
+    data_fim: form.value.data_fim || null,
+    total_parcelas: form.value.total_parcelas ? Number(form.value.total_parcelas) : null,
+    dia_vencimento: form.value.dia_vencimento ? Number(form.value.dia_vencimento) : null,
+    credor: form.value.credor || null,
+    forma_pagamento: form.value.forma_pagamento || null,
+    observacao: form.value.observacao || null
+  }
+
+  try {
+    if (form.value.id) await api.patch(`/compromissos/${form.value.id}`, { ...corpo, regerar: true })
+    else await api.post('/compromissos', corpo)
+    abrindo.value = false
+    await carregar()
+  } catch (e: any) { erro.value = e.message }
+  salvando.value = false
+}
+
+async function excluir(c: any) {
+  if (!confirm(`Remover "${c.descricao}" e todos os lançamentos futuros dela?`)) return
+  await api.remove(`/compromissos/${c.id}`)
+  await carregar()
+}
+
+onMounted(carregar)
+</script>
+
+<template>
+  <div>
+    <div class="topo entre">
+      <div>
+        <h1>Contas e entradas</h1>
+        <p>O que se repete todo mês, o que é parcelado e o que entra.</p>
+      </div>
+      <button class="btn" @click="novo()">＋ Cadastrar</button>
+    </div>
+
+    <div class="linha-flex" style="margin-bottom:14px">
+      <button v-for="f in ['todos','despesa','receita']" :key="f"
+              class="btn mini" :class="filtro === f ? '' : 'claro'"
+              @click="filtro = f as any">
+        {{ f === 'todos' ? 'Tudo' : (f === 'despesa' ? 'Saídas' : 'Entradas') }}
+      </button>
+    </div>
+
+    <div class="cartao chapa">
+      <div v-if="carregando" class="vazio">Consultando…</div>
+      <div v-else-if="!listaFiltrada.length" class="vazio">
+        <div class="simbolo">☰</div>
+        Nada cadastrado ainda. Comece pelo aluguel, a luz, o salário.
+      </div>
+      <div v-else class="tabela-rolagem">
+        <table>
+          <thead>
+            <tr>
+              <th>Descrição</th><th>Categoria</th><th>Tipo</th><th>Vence</th>
+              <th class="direita">Valor</th><th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="c in listaFiltrada" :key="c.id">
+              <td>
+                <strong>{{ c.descricao }}</strong>
+                <div v-if="c.credor" class="pequeno mudo">{{ c.credor }}</div>
+              </td>
+              <td>
+                <span class="linha-flex" style="gap:6px">
+                  <i class="ponto" :style="{ background: c.categorias?.cor ?? '#94a3b8' }"></i>
+                  <span class="pequeno">{{ c.categorias?.nome ?? '—' }}</span>
+                </span>
+              </td>
+              <td class="pequeno">
+                {{ rotuloModalidade[c.modalidade] }}
+                <span v-if="c.total_parcelas" class="mudo">· {{ c.total_parcelas }}x</span>
+              </td>
+              <td class="num pequeno">
+                {{ c.dia_vencimento ? `dia ${c.dia_vencimento}` : dataBr(c.data_inicio) }}
+              </td>
+              <td class="direita num" :class="c.tipo === 'receita' ? 'entrada' : 'saida'">
+                {{ c.tipo === 'receita' ? '+' : '−' }} {{ dinheiro(c.valor) }}
+              </td>
+              <td class="direita" style="white-space:nowrap">
+                <button class="btn claro mini" @click="editar(c)">Editar</button>
+                <button class="btn risco mini" style="margin-left:5px" @click="excluir(c)">×</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- formulario -->
+    <div v-if="abrindo" class="veu" @click.self="abrindo = false">
+      <div class="painel">
+        <div class="painel-topo">
+          <h2>{{ form.id ? 'Editar conta' : 'Nova conta' }}</h2>
+          <button class="fechar" @click="abrindo = false">×</button>
+        </div>
+
+        <div class="painel-corpo">
+          <div class="campo">
+            <label>É entrada ou saída?</label>
+            <select v-model="form.tipo">
+              <option value="despesa">Saída — conta a pagar</option>
+              <option value="receita">Entrada — dinheiro que recebo</option>
+            </select>
+          </div>
+
+          <div class="campo">
+            <label>Descrição</label>
+            <input v-model="form.descricao" placeholder="Aluguel, Energia, Salário…" />
+          </div>
+
+          <div class="dupla">
+            <div class="campo">
+              <label>Valor (R$)</label>
+              <input v-model="form.valor" type="number" step="0.01" placeholder="0,00" />
+            </div>
+            <div class="campo">
+              <label>Categoria</label>
+              <select v-model="form.categoria_id">
+                <option value="">Sem categoria</option>
+                <option v-for="k in catsFiltradas" :key="k.id" :value="k.id">{{ k.nome }}</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="campo">
+            <label>Como se repete</label>
+            <select v-model="form.modalidade">
+              <option value="recorrente">Todo mês, sem fim definido</option>
+              <option value="parcelada">Parcelada — tem número de parcelas</option>
+              <option value="unica">Só uma vez</option>
+            </select>
+          </div>
+
+          <div class="dupla" v-if="form.modalidade !== 'unica'">
+            <div class="campo">
+              <label>Frequência</label>
+              <select v-model="form.frequencia">
+                <option value="mensal">Mensal</option>
+                <option value="quinzenal">Quinzenal</option>
+                <option value="semanal">Semanal</option>
+                <option value="bimestral">A cada 2 meses</option>
+                <option value="trimestral">A cada 3 meses</option>
+                <option value="semestral">A cada 6 meses</option>
+                <option value="anual">Anual</option>
+              </select>
+            </div>
+            <div class="campo">
+              <label>Dia do vencimento</label>
+              <input v-model="form.dia_vencimento" type="number" min="1" max="31" />
+            </div>
+          </div>
+
+          <div class="campo" v-if="form.modalidade === 'parcelada'">
+            <label>Quantas parcelas</label>
+            <input v-model="form.total_parcelas" type="number" min="1" placeholder="12" />
+          </div>
+
+          <div class="dupla">
+            <div class="campo">
+              <label>{{ form.modalidade === 'unica' ? 'Data' : 'Começa em' }}</label>
+              <input v-model="form.data_inicio" type="date" />
+            </div>
+            <div class="campo" v-if="form.modalidade === 'recorrente'">
+              <label>Termina em (opcional)</label>
+              <input v-model="form.data_fim" type="date" />
+            </div>
+          </div>
+
+          <div class="dupla">
+            <div class="campo">
+              <label>Para quem / de quem</label>
+              <input v-model="form.credor" placeholder="Imobiliária, CPFL, Empresa…" />
+            </div>
+            <div class="campo">
+              <label>Forma de pagamento</label>
+              <input v-model="form.forma_pagamento" placeholder="Débito automático, Pix…" />
+            </div>
+          </div>
+
+          <div class="campo">
+            <label>Observação</label>
+            <textarea v-model="form.observacao" rows="2"></textarea>
+          </div>
+
+          <div v-if="erro" class="aviso mal">{{ erro }}</div>
+        </div>
+
+        <div class="painel-pe">
+          <button class="btn claro" @click="abrindo = false">Cancelar</button>
+          <button class="btn" :disabled="salvando" @click="salvar">
+            {{ salvando ? 'Salvando…' : 'Salvar' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
