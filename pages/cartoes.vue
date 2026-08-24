@@ -105,6 +105,8 @@ function rotuloComp(d: string) {
   const [a, m] = String(d).slice(0, 7).split('-')
   return `${MESES[Number(m) - 1]}/${a}`
 }
+
+onMounted(carregar)
 </script>
 
 <template>
