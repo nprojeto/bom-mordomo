@@ -14,8 +14,8 @@ const rotuloMes = computed(() => {
   return `${MESES[Number(m) - 1]} de ${a}`
 })
 
-const saldo = computed(() =>
-  Number(resumo.value?.receitas || 0) - Number(resumo.value?.despesas || 0))
+const livre = computed(() =>
+  Number(resumo.value?.previsao || 0) - Number(resumo.value?.comprometido_faturas || 0))
 
 function mudarMes(passo: number) {
   const [a, m] = mes.value.split('-').map(Number)
@@ -72,36 +72,78 @@ onMounted(carregar)
     <div v-if="carregando" class="vazio">Consultando os livros…</div>
 
     <template v-else-if="resumo">
-      <!-- selos -->
+      <!-- caixa -->
+      <div class="grade g3" style="margin-bottom:16px">
+        <div class="cartao caixa-destaque">
+          <div class="rotulo">No caixa hoje</div>
+          <div class="selo-valor" :class="Number(resumo.caixa_real) >= 0 ? 'entrada' : 'saida'">
+            {{ dinheiro(resumo.caixa_real) }}
+          </div>
+          <div class="pequeno mudo" style="margin-top:6px">
+            O que já entrou menos o que já saiu.
+          </div>
+        </div>
+
+        <div class="cartao">
+          <div class="rotulo">Previsão fim do mês</div>
+          <div class="selo-valor" :class="Number(resumo.previsao) >= 0 ? 'entrada' : 'saida'">
+            {{ dinheiro(resumo.previsao) }}
+          </div>
+          <div class="pequeno mudo" style="margin-top:6px">
+            Já descontadas as contas e faturas que vencem até o dia 30.
+          </div>
+        </div>
+
+        <div class="cartao">
+          <div class="rotulo">Livre de verdade</div>
+          <div class="selo-valor" :class="livre >= 0 ? 'entrada' : 'saida'">
+            {{ dinheiro(livre) }}
+          </div>
+          <div class="pequeno mudo" style="margin-top:6px">
+            Tirando também <span class="num">{{ dinheiro(resumo.comprometido_faturas) }}</span>
+            de faturas dos próximos meses.
+          </div>
+        </div>
+      </div>
+
+      <div v-if="resumo.sem_baixa_qtd" class="aviso entre" style="margin-bottom:16px">
+        <span>
+          <strong>{{ resumo.sem_baixa_qtd }} conta(s)</strong> já venceram e não têm baixa
+          — <span class="num">{{ dinheiro(resumo.sem_baixa_valor) }}</span>.
+          Enquanto isso, o caixa de hoje fica maior do que a realidade.
+        </span>
+        <NuxtLink to="/calendario" class="btn claro mini">Resolver</NuxtLink>
+      </div>
+
+      <!-- movimento do mes -->
       <div class="grade g4" style="margin-bottom:16px">
         <div class="cartao">
-          <div class="rotulo">Entradas do mês</div>
+          <div class="rotulo">Entrou / vai entrar</div>
           <div class="selo-valor entrada">{{ dinheiro(resumo.receitas) }}</div>
-        </div>
-        <div class="cartao">
-          <div class="rotulo">Saídas do mês</div>
-          <div class="selo-valor saida">{{ dinheiro(resumo.despesas) }}</div>
-        </div>
-        <div class="cartao">
-          <div class="rotulo">Sobra prevista</div>
-          <div class="selo-valor" :class="saldo >= 0 ? 'entrada' : 'saida'">
-            {{ dinheiro(saldo) }}
+          <div class="pequeno mudo">
+            já caiu <span class="num">{{ dinheiro(resumo.recebido) }}</span>
           </div>
+        </div>
+        <div class="cartao">
+          <div class="rotulo">Saiu / vai sair</div>
+          <div class="selo-valor saida">{{ dinheiro(resumo.despesas) }}</div>
+          <div class="pequeno mudo">
+            já saiu <span class="num">{{ dinheiro(Number(resumo.pago) + Number(resumo.gasto_feito)) }}</span>
+          </div>
+        </div>
+        <div class="cartao">
+          <div class="rotulo">Falta pagar</div>
+          <div class="selo-valor">{{ dinheiro(Number(resumo.a_pagar) + Number(resumo.gasto_futuro)) }}</div>
+          <div class="pequeno mudo">contas e faturas até o fim do mês</div>
         </div>
         <div class="cartao">
           <div class="rotulo">Guardado</div>
           <div class="selo-valor">{{ dinheiro(resumo.total_reservado) }}</div>
+          <div class="pequeno mudo">reservas e investimentos</div>
         </div>
       </div>
 
       <div class="grade g2" style="margin-bottom:16px">
-        <div class="cartao">
-          <div class="rotulo">Ainda a pagar este mês</div>
-          <div class="selo-valor">{{ dinheiro(resumo.pendentes) }}</div>
-          <div class="pequeno mudo" style="margin-top:6px">
-            Contas fixas já pagas: <span class="num">{{ dinheiro(resumo.pagas) }}</span>
-          </div>
-        </div>
         <div class="cartao">
           <div class="rotulo">De onde saiu o dinheiro</div>
           <div class="grade g2" style="margin-top:8px">
@@ -226,5 +268,19 @@ onMounted(carregar)
         </div>
       </div>
     </template>
+
+<style scoped>
+.caixa-destaque {
+  border-left: 3px solid var(--latao);
+}
+.caixa-destaque .selo-valor { font-size: 1.9rem; }
+</style>
   </div>
 </template>
+
+<style scoped>
+.caixa-destaque {
+  border-left: 3px solid var(--latao);
+}
+.caixa-destaque .selo-valor { font-size: 1.9rem; }
+</style>

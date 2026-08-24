@@ -32,8 +32,19 @@ const form = ref(vazio())
 const catsFiltradas = computed(() =>
   categorias.value.filter((c) => c.tipo === form.value.tipo))
 
-const listaFiltrada = computed(() =>
-  filtro.value === 'todos' ? lista.value : lista.value.filter((c) => c.tipo === filtro.value))
+function diaDe(c: any) {
+  if (c.dia_vencimento) return Number(c.dia_vencimento)
+  const d = String(c.data_inicio ?? '').slice(8, 10)
+  return d ? Number(d) : 99
+}
+
+const listaFiltrada = computed(() => {
+  const base = filtro.value === 'todos'
+    ? lista.value
+    : lista.value.filter((c) => c.tipo === filtro.value)
+  return [...base].sort((a, b) =>
+    diaDe(a) - diaDe(b) || String(a.descricao).localeCompare(String(b.descricao)))
+})
 
 // Normaliza tudo para "quanto pesa por mes"
 function porMes(c: any) {
@@ -202,12 +213,15 @@ onMounted(carregar)
         <table>
           <thead>
             <tr>
-              <th>Descrição</th><th>Categoria</th><th>Tipo</th><th>Vence</th>
+              <th>Vence</th><th>Descrição</th><th>Categoria</th><th>Tipo</th>
               <th class="direita">Valor</th><th></th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="c in listaFiltrada" :key="c.id">
+              <td class="num" style="width:70px;font-weight:600">
+                {{ c.dia_vencimento ? `dia ${c.dia_vencimento}` : dataBr(c.data_inicio) }}
+              </td>
               <td>
                 <strong>{{ c.descricao }}</strong>
                 <div v-if="c.credor" class="pequeno mudo">{{ c.credor }}</div>
@@ -221,9 +235,6 @@ onMounted(carregar)
               <td class="pequeno">
                 {{ rotuloModalidade[c.modalidade] }}
                 <span v-if="c.total_parcelas" class="mudo">· {{ c.total_parcelas }}x</span>
-              </td>
-              <td class="num pequeno">
-                {{ c.dia_vencimento ? `dia ${c.dia_vencimento}` : dataBr(c.data_inicio) }}
               </td>
               <td class="direita num" :class="c.tipo === 'receita' ? 'entrada' : 'saida'">
                 {{ c.tipo === 'receita' ? '+' : '−' }} {{ dinheiro(c.valor) }}
