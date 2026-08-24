@@ -6,13 +6,14 @@ const email = ref('')
 const nuLogin = computed(() => rota.path === '/login')
 
 const itens = [
-  { para: '/',            ic: '◈', txt: 'Painel' },
-  { para: '/calendario',  ic: '▦', txt: 'Calendário' },
-  { para: '/contas',      ic: '☰', txt: 'Contas' },
-  { para: '/gastos',      ic: '◍', txt: 'Gastos' },
-  { para: '/cartoes',     ic: '▤', txt: 'Cartões' },
-  { para: '/reservas',    ic: '◉', txt: 'Reservas' },
-  { para: '/ajustes',     ic: '⚙', txt: 'Ajustes' }
+  { para: '/',            ic: '◈', txt: 'Painel',     curto: 'Painel' },
+  { para: '/moderando',   ic: '◐', txt: 'Moderando',  curto: 'Moderar' },
+  { para: '/calendario',  ic: '▦', txt: 'Calendário', curto: 'Agenda' },
+  { para: '/contas',      ic: '☰', txt: 'Contas',     curto: 'Contas' },
+  { para: '/gastos',      ic: '◍', txt: 'Gastos',     curto: 'Gastos' },
+  { para: '/cartoes',     ic: '▤', txt: 'Cartões',    curto: 'Cartões' },
+  { para: '/reservas',    ic: '◉', txt: 'Reservas',   curto: 'Reservas' },
+  { para: '/ajustes',     ic: '⚙', txt: 'Ajustes',    curto: 'Ajustes' }
 ]
 
 onMounted(async () => {
@@ -48,7 +49,7 @@ async function sair() {
 
     <nav class="menu-mobile">
       <NuxtLink v-for="i in itens" :key="i.para" :to="i.para">
-        <span class="ic">{{ i.ic }}</span>{{ i.txt }}
+        <span class="ic">{{ i.ic }}</span>{{ i.curto }}
       </NuxtLink>
     </nav>
   </div>
