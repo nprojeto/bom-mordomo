@@ -39,8 +39,11 @@ const qtdArquivadas = computed(() =>
   lista.value.filter((r) => r.ativo === false).length)
 
 async function reativar(r: any) {
-  await api.post(`/reservas/reativar/${r.id}`)
-  await carregar()
+  erroCarga.value = ''
+  try {
+    await api.post(`/reservas/reativar/${r.id}`)
+    await carregar()
+  } catch (e: any) { erroCarga.value = e.message }
 }
 
 async function carregar() {
@@ -95,16 +98,25 @@ async function salvarReserva() {
 
 async function arquivarReserva(r: any) {
   if (!confirm(`Arquivar "${r.nome}"? O histórico continua guardado.`)) return
-  await api.remove(`/reservas/${r.id}`)
-  selecionada.value = null
-  await carregar()
+  erroCarga.value = ''
+  try {
+    await api.remove(`/reservas/${r.id}`)
+    selecionada.value = null
+    await carregar()
+  } catch (e: any) { erroCarga.value = e.message }
 }
 
 async function apagarReserva(r: any) {
-  if (!confirm(`Apagar "${r.nome}" DE VEZ, junto com todos os lançamentos? Não dá para desfazer.`)) return
-  await api.remove(`/reservas/${r.id}?definitivo=1`)
-  selecionada.value = null
-  await carregar()
+  const aviso = Number(r.saldo) > 0
+    ? `\n\nATENÇÃO: esta reserva tem ${dinheiro(r.saldo)} guardado. Tudo será perdido.`
+    : ''
+  if (!confirm(`Apagar "${r.nome}" DE VEZ, junto com todos os lançamentos?${aviso}\n\nNão dá para desfazer.`)) return
+  erroCarga.value = ''
+  try {
+    await api.remove(`/reservas/${r.id}?definitivo=1`)
+    selecionada.value = null
+    await carregar()
+  } catch (e: any) { erroCarga.value = e.message }
 }
 
 /* ---------------- movimento ---------------- */
@@ -221,7 +233,8 @@ onMounted(carregar)
           <button v-if="r.ativo === false" class="btn latao mini" @click="reativar(r)">
             Reativar
           </button>
-          <button v-else class="btn risco mini" @click="arquivarReserva(r)">Arquivar</button>
+          <button v-else class="btn claro mini" @click="arquivarReserva(r)">Arquivar</button>
+          <button class="btn risco mini" @click="apagarReserva(r)">Excluir</button>
         </div>
       </div>
     </div>
