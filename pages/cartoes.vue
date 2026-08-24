@@ -10,7 +10,8 @@ const detalhe = ref<any>(null)
 
 const vazio = () => ({
   id: null as string | null, nome: '', ultimos4: '',
-  dia_fechamento: 25, dia_vencimento: 5, limite: '', cor: '#A33F32', observacao: ''
+  dia_fechamento: 25, dia_vencimento: 5, limite: '', cor: '#A33F32',
+  padrao: false, observacao: ''
 })
 const form = ref(vazio())
 
@@ -32,7 +33,7 @@ function editar(c: any) {
     id: c.id, nome: c.nome, ultimos4: c.ultimos4,
     dia_fechamento: c.dia_fechamento,
     dia_vencimento: c.dia_vencimento ?? '',
-    limite: c.limite ?? '', cor: c.cor, observacao: c.observacao ?? ''
+    limite: c.limite ?? '', cor: c.cor, padrao: !!c.padrao, observacao: c.observacao ?? ''
   }
   erro.value = ''
   abrindo.value = true
@@ -57,6 +58,7 @@ async function salvar() {
     dia_vencimento: Number(form.value.dia_vencimento),
     limite: form.value.limite ? Number(form.value.limite) : null,
     cor: form.value.cor,
+    padrao: !!form.value.padrao,
     observacao: form.value.observacao || null
   }
   try {
@@ -65,6 +67,11 @@ async function salvar() {
     abrindo.value = false
     await carregar()
   } catch (e: any) { erro.value = e.message }
+}
+
+async function tornarPadrao(c: any) {
+  await api.patch(`/cartoes/${c.id}`, { padrao: true })
+  await carregar()
 }
 
 async function arquivar(c: any) {
@@ -121,7 +128,9 @@ function rotuloComp(d: string) {
            :style="{ borderTop: `3px solid ${c.cor}` }">
         <div class="entre">
           <div>
-            <h3>{{ c.nome }}</h3>
+            <h3>{{ c.nome }}
+              <span v-if="c.padrao" class="eti pago" style="vertical-align:middle">principal</span>
+            </h3>
             <div class="pequeno mudo num">•••• {{ c.ultimos4 }}</div>
           </div>
           <div class="direita pequeno mudo">
@@ -150,6 +159,9 @@ function rotuloComp(d: string) {
         <div class="linha-flex" style="margin-top:14px;flex-wrap:wrap">
           <button class="btn claro mini" @click="detalhe = c">Faturas</button>
           <button class="btn claro mini" @click="editar(c)">Editar</button>
+          <button v-if="!c.padrao" class="btn claro mini" @click="tornarPadrao(c)">
+            Tornar principal
+          </button>
           <button class="btn risco mini" @click="arquivar(c)">Arquivar</button>
         </div>
       </div>
@@ -239,6 +251,14 @@ function rotuloComp(d: string) {
           <div class="campo">
             <label>Observação</label>
             <input v-model="form.observacao" />
+          </div>
+
+          <div class="aviso" style="margin-bottom:13px">
+            <label class="linha-flex" style="margin:0;cursor:pointer;font-weight:500">
+              <input v-model="form.padrao" type="checkbox" style="width:auto;margin:0" />
+              <span>Este é meu cartão principal — quando eu falar “no crédito”
+                sem dizer o nome, use este.</span>
+            </label>
           </div>
 
           <div v-if="erro" class="aviso mal">{{ erro }}</div>

@@ -35,8 +35,13 @@ const rotuloForma: Record<string, string> = {
 }
 const FORMAS = ['dinheiro', 'pix', 'debito', 'credito']
 
+const seletorCartao = ref<HTMLSelectElement | null>(null)
+
 const cartaoObrigatorio = computed(() =>
   form.value?.forma === 'credito' && !form.value?.cartao_id)
+
+const cartaoEscolhido = computed(() =>
+  cartoes.value.find((c) => c.id === form.value?.cartao_id) ?? null)
 
 const totalDaCompra = computed(() => {
   if (!form.value) return 0
@@ -105,6 +110,8 @@ async function interpretar() {
       observacao: r.texto,
       origem: 'voz'
     }
+    await nextTick()
+    if (cartaoObrigatorio.value) seletorCartao.value?.focus()
   } catch (e: any) { erro.value = e.message }
 }
 
@@ -242,6 +249,31 @@ async function carregar() {
         <button class="fechar" @click="form = null">×</button>
       </div>
 
+      <!-- resumo grande + gravar -->
+      <div class="resumo-voz">
+        <div>
+          <div class="selo-valor saida">{{ dinheiro(totalDaCompra) }}</div>
+          <div class="pequeno" style="margin-top:2px">
+            <strong>{{ form.descricao || 'Sem descrição' }}</strong>
+            <span class="mudo"> · {{ rotuloForma[form.forma] }}</span>
+            <span v-if="form.forma === 'credito'" class="mudo">
+              · {{ Number(form.parcelas) > 1 ? form.parcelas + '× ' + dinheiro(valorDaParcela) : 'à vista' }}
+            </span>
+            <span v-if="cartaoEscolhido" class="mudo">
+              · {{ cartaoEscolhido.nome }} ••{{ cartaoEscolhido.ultimos4 }}
+            </span>
+          </div>
+        </div>
+        <button class="btn latao" :disabled="salvando || cartaoObrigatorio" @click="salvar">
+          {{ salvando ? 'Gravando…' : (form.id ? 'Salvar' : 'Gravar') }}
+        </button>
+      </div>
+
+      <div v-if="cartaoObrigatorio" class="aviso" style="margin-bottom:14px">
+        <strong>Falta escolher o cartão.</strong>
+        Você tem {{ cartoes.length }} cadastrados — selecione abaixo.
+      </div>
+
       <div class="grade g3">
         <div class="campo">
           <label>O que foi</label>
@@ -275,7 +307,8 @@ async function carregar() {
       <div v-if="form.forma === 'credito'" class="grade g3">
         <div class="campo">
           <label>Cartão *</label>
-          <select v-model="form.cartao_id">
+          <select ref="seletorCartao" v-model="form.cartao_id"
+                  :style="cartaoObrigatorio ? 'border-color:var(--latao);outline:2px solid var(--latao)' : ''">
             <option value="">— escolha —</option>
             <option v-for="c in cartoes" :key="c.id" :value="c.id">
               {{ c.nome }} ••{{ c.ultimos4 }}
@@ -334,7 +367,7 @@ async function carregar() {
       <div v-if="erro" class="aviso mal" style="margin-bottom:12px">{{ erro }}</div>
 
       <div class="linha-flex">
-        <button class="btn latao" :disabled="salvando" @click="salvar">
+        <button class="btn latao" :disabled="salvando || cartaoObrigatorio" @click="salvar">
           {{ salvando ? 'Gravando…' : (form.id ? 'Salvar alteração' : 'Gravar gasto') }}
         </button>
         <button class="btn claro" @click="form = null">Descartar</button>
@@ -430,6 +463,14 @@ async function carregar() {
 </template>
 
 <style scoped>
+.resumo-voz {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 14px; flex-wrap: wrap;
+  background: var(--papel); border: 1px solid var(--linha);
+  border-radius: 10px; padding: 12px 16px; margin-bottom: 16px;
+}
+.resumo-voz .selo-valor { font-size: 1.7rem; line-height: 1.1; }
+
 .botao-voz {
   width: 88px; height: 88px; border-radius: 50%;
   border: 2px solid var(--tinta); background: var(--tinta); color: #fff;
