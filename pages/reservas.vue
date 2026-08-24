@@ -9,8 +9,17 @@ const erro = ref('')
 const extrato = ref<any[]>([])
 const selecionada = ref<any>(null)
 
-const formR = ref({ nome: '', tipo: 'investimento', instituicao: '', meta_valor: '', meta_data: '' })
-const formM = ref({ reserva_id: '', tipo: 'aporte', valor: '', data: hojeISO(), observacao: '' })
+const vazioR = () => ({
+  id: null as string | null, nome: '', tipo: 'investimento',
+  instituicao: '', meta_valor: '', meta_data: '', cor: '#0ea5e9', observacao: ''
+})
+const vazioM = () => ({
+  id: null as string | null, reserva_id: '', tipo: 'aporte',
+  valor: '', data: hojeISO(), observacao: ''
+})
+
+const formR = ref(vazioR())
+const formM = ref(vazioM())
 
 const total = computed(() => lista.value.reduce((s, r) => s + Number(r.saldo || 0), 0))
 
@@ -29,42 +38,92 @@ async function abrirExtrato(r: any) {
   extrato.value = await api.get(`/reservas/movimentos/${r.id}`) ?? []
 }
 
-function novaMov(r: any) {
-  formM.value = { reserva_id: r.id, tipo: 'aporte', valor: '', data: hojeISO(), observacao: '' }
+/* ---------------- reserva ---------------- */
+function novaReserva() { formR.value = vazioR(); erro.value = ''; abrindoReserva.value = true }
+
+function editarReserva(r: any) {
+  formR.value = {
+    id: r.id, nome: r.nome, tipo: r.tipo,
+    instituicao: r.instituicao ?? '',
+    meta_valor: r.meta_valor ?? '', meta_data: r.meta_data ?? '',
+    cor: r.cor ?? '#0ea5e9', observacao: r.observacao ?? ''
+  }
   erro.value = ''
-  abrindoMov.value = true
+  abrindoReserva.value = true
 }
 
 async function salvarReserva() {
   if (!formR.value.nome.trim()) { erro.value = 'Dê um nome à reserva.'; return }
+  const corpo = {
+    nome: formR.value.nome.trim(),
+    tipo: formR.value.tipo,
+    instituicao: formR.value.instituicao || null,
+    meta_valor: formR.value.meta_valor ? Number(formR.value.meta_valor) : null,
+    meta_data: formR.value.meta_data || null,
+    cor: formR.value.cor,
+    observacao: formR.value.observacao || null
+  }
   try {
-    await api.post('/reservas', {
-      nome: formR.value.nome.trim(),
-      tipo: formR.value.tipo,
-      instituicao: formR.value.instituicao || null,
-      meta_valor: formR.value.meta_valor ? Number(formR.value.meta_valor) : null,
-      meta_data: formR.value.meta_data || null
-    })
+    if (formR.value.id) await api.patch(`/reservas/${formR.value.id}`, corpo)
+    else await api.post('/reservas', corpo)
     abrindoReserva.value = false
-    formR.value = { nome: '', tipo: 'investimento', instituicao: '', meta_valor: '', meta_data: '' }
     await carregar()
   } catch (e: any) { erro.value = e.message }
 }
 
+async function arquivarReserva(r: any) {
+  if (!confirm(`Arquivar "${r.nome}"? O histórico continua guardado.`)) return
+  await api.remove(`/reservas/${r.id}`)
+  selecionada.value = null
+  await carregar()
+}
+
+async function apagarReserva(r: any) {
+  if (!confirm(`Apagar "${r.nome}" DE VEZ, junto com todos os lançamentos? Não dá para desfazer.`)) return
+  await api.remove(`/reservas/${r.id}?definitivo=1`)
+  selecionada.value = null
+  await carregar()
+}
+
+/* ---------------- movimento ---------------- */
+function novaMov(r: any) {
+  formM.value = { ...vazioM(), reserva_id: r.id }
+  erro.value = ''
+  abrindoMov.value = true
+}
+
+function editarMov(m: any) {
+  formM.value = {
+    id: m.id, reserva_id: m.reserva_id, tipo: m.tipo,
+    valor: m.valor, data: String(m.data).slice(0, 10), observacao: m.observacao ?? ''
+  }
+  erro.value = ''
+  abrindoMov.value = true
+}
+
 async function salvarMov() {
   if (!Number(formM.value.valor)) { erro.value = 'Informe o valor.'; return }
+  const corpo = {
+    reserva_id: formM.value.reserva_id,
+    tipo: formM.value.tipo,
+    valor: Number(formM.value.valor),
+    data: formM.value.data,
+    observacao: formM.value.observacao || null
+  }
   try {
-    await api.post('/reservas/movimentos', {
-      reserva_id: formM.value.reserva_id,
-      tipo: formM.value.tipo,
-      valor: Number(formM.value.valor),
-      data: formM.value.data,
-      observacao: formM.value.observacao || null
-    })
+    if (formM.value.id) await api.patch(`/reservas/movimentos/${formM.value.id}`, corpo)
+    else await api.post('/reservas/movimentos', corpo)
     abrindoMov.value = false
     await carregar()
     if (selecionada.value) await abrirExtrato(selecionada.value)
   } catch (e: any) { erro.value = e.message }
+}
+
+async function apagarMov(m: any) {
+  if (!confirm('Apagar este lançamento?')) return
+  await api.remove(`/reservas/movimentos/${m.id}`)
+  await carregar()
+  if (selecionada.value) await abrirExtrato(selecionada.value)
 }
 
 function progresso(r: any) {
@@ -82,7 +141,7 @@ onMounted(carregar)
         <h1>Reservas</h1>
         <p>O que está guardado — investimento, emergência e metas.</p>
       </div>
-      <button class="btn" @click="erro=''; abrindoReserva = true">＋ Nova reserva</button>
+      <button class="btn" @click="novaReserva()">＋ Nova reserva</button>
     </div>
 
     <div class="cartao" style="margin-bottom:16px">
@@ -119,9 +178,11 @@ onMounted(carregar)
           </div>
         </template>
 
-        <div class="linha-flex" style="margin-top:14px">
+        <div class="linha-flex" style="margin-top:14px;flex-wrap:wrap">
           <button class="btn latao mini" @click="novaMov(r)">Lançar</button>
           <button class="btn claro mini" @click="abrirExtrato(r)">Extrato</button>
+          <button class="btn claro mini" @click="editarReserva(r)">Editar</button>
+          <button class="btn risco mini" @click="arquivarReserva(r)">Arquivar</button>
         </div>
       </div>
     </div>
@@ -138,7 +199,7 @@ onMounted(carregar)
           <table v-else>
             <tbody>
               <tr v-for="m in extrato" :key="m.id">
-                <td class="num pequeno">{{ dataBr(m.data) }}</td>
+                <td class="num pequeno" style="white-space:nowrap">{{ dataBr(m.data) }}</td>
                 <td>
                   <span class="pequeno">{{ m.tipo === 'aporte' ? 'Aporte'
                     : m.tipo === 'resgate' ? 'Resgate' : 'Rendimento' }}</span>
@@ -147,18 +208,27 @@ onMounted(carregar)
                 <td class="direita num" :class="m.tipo === 'resgate' ? 'saida' : 'entrada'">
                   {{ m.tipo === 'resgate' ? '−' : '+' }} {{ dinheiro(m.valor) }}
                 </td>
+                <td class="direita" style="white-space:nowrap">
+                  <button class="btn claro mini" @click="editarMov(m)">Editar</button>
+                  <button class="btn risco mini" style="margin-left:4px" @click="apagarMov(m)">×</button>
+                </td>
               </tr>
             </tbody>
           </table>
         </div>
+        <div class="painel-pe">
+          <button class="btn risco" @click="apagarReserva(selecionada)">Apagar de vez</button>
+          <span class="espaco"></span>
+          <button class="btn latao" @click="novaMov(selecionada)">Lançar</button>
+        </div>
       </div>
     </div>
 
-    <!-- nova reserva -->
+    <!-- reserva -->
     <div v-if="abrindoReserva" class="veu" @click.self="abrindoReserva = false">
       <div class="painel">
         <div class="painel-topo">
-          <h2>Nova reserva</h2>
+          <h2>{{ formR.id ? 'Editar reserva' : 'Nova reserva' }}</h2>
           <button class="fechar" @click="abrindoReserva = false">×</button>
         </div>
         <div class="painel-corpo">
@@ -190,6 +260,16 @@ onMounted(carregar)
               <input v-model="formR.meta_data" type="date" />
             </div>
           </div>
+          <div class="dupla">
+            <div class="campo">
+              <label>Cor</label>
+              <input v-model="formR.cor" type="color" style="height:40px;padding:3px" />
+            </div>
+            <div class="campo">
+              <label>Observação</label>
+              <input v-model="formR.observacao" />
+            </div>
+          </div>
           <div v-if="erro" class="aviso mal">{{ erro }}</div>
         </div>
         <div class="painel-pe">
@@ -203,7 +283,7 @@ onMounted(carregar)
     <div v-if="abrindoMov" class="veu" @click.self="abrindoMov = false">
       <div class="painel" style="max-width:420px">
         <div class="painel-topo">
-          <h2>Lançar movimento</h2>
+          <h2>{{ formM.id ? 'Editar lançamento' : 'Lançar movimento' }}</h2>
           <button class="fechar" @click="abrindoMov = false">×</button>
         </div>
         <div class="painel-corpo">

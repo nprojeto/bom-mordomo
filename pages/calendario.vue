@@ -5,6 +5,8 @@ const ref_ = ref(hojeISO().slice(0, 7))
 const itens = ref<any[]>([])
 const carregando = ref(true)
 const diaAberto = ref<string | null>(null)
+const editando = ref<any>(null)
+const erro = ref('')
 
 const DIAS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 
@@ -25,8 +27,7 @@ const celulas = computed(() => {
     d.setDate(inicio.getDate() + i)
     const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
     lista.push({
-      iso,
-      dia: d.getDate(),
+      iso, dia: d.getDate(),
       fora: d.getMonth() !== m - 1,
       hoje: iso === hojeISO(),
       eventos: itens.value.filter((x) => String(x.data).slice(0, 10) === iso)
@@ -36,8 +37,7 @@ const celulas = computed(() => {
 })
 
 const totais = computed(() => {
-  const dentro = itens.value
-  const soma = (t: string) => dentro.filter((x) => x.tipo === t)
+  const soma = (t: string) => itens.value.filter((x) => x.tipo === t)
     .reduce((s, x) => s + Number(x.valor || 0), 0)
   return { receita: soma('receita'), despesa: soma('despesa') }
 })
@@ -61,7 +61,7 @@ async function carregar() {
   carregando.value = true
   const [a, m] = ref_.value.split('-').map(Number)
   const de = `${ref_.value}-01`
-  const ate = new Date(a, m, 0).toISOString().slice(0, 10)
+  const ate = `${ref_.value}-${String(new Date(a, m, 0).getDate()).padStart(2, '0')}`
   itens.value = await api.get(`/calendario?de=${de}&ate=${ate}`) ?? []
   carregando.value = false
 }
@@ -69,7 +69,47 @@ async function carregar() {
 async function pagar(o: any) {
   await api.patch(`/ocorrencias/pagar/${o.id}`, { valor_pago: o.valor })
   await carregar()
+}
+
+async function desfazer(o: any) {
+  await api.patch(`/ocorrencias/desfazer/${o.id}`)
+  await carregar()
+}
+
+function editar(o: any) {
+  editando.value = {
+    id: o.id,
+    descricao: o.descricao,
+    vencimento: String(o.data).slice(0, 10),
+    valor_previsto: o.valor,
+    valor_pago: o.valor_pago ?? '',
+    status: o.status,
+    observacao: o.observacao ?? ''
+  }
+  erro.value = ''
+}
+
+async function salvarEdicao() {
+  erro.value = ''
+  try {
+    await api.patch(`/ocorrencias/${editando.value.id}`, {
+      vencimento: editando.value.vencimento,
+      valor_previsto: Number(editando.value.valor_previsto),
+      valor_pago: editando.value.valor_pago === '' ? null : Number(editando.value.valor_pago),
+      status: editando.value.status,
+      observacao: editando.value.observacao || null
+    })
+    editando.value = null
+    diaAberto.value = null
+    await carregar()
+  } catch (e: any) { erro.value = e.message }
+}
+
+async function apagar(o: any) {
+  if (!confirm(`Apagar o lançamento "${o.descricao}" deste dia?`)) return
+  await api.remove(`/ocorrencias/${o.id}`)
   diaAberto.value = null
+  await carregar()
 }
 
 onMounted(carregar)
@@ -79,7 +119,7 @@ onMounted(carregar)
   <div>
     <div class="topo">
       <h1>Calendário</h1>
-      <p>Tudo o que entra e sai, dia a dia.</p>
+      <p>Tudo o que entra e sai, dia a dia. Clique num dia para editar.</p>
     </div>
 
     <div class="folha">
@@ -95,9 +135,7 @@ onMounted(carregar)
         </div>
       </div>
 
-      <div class="semana">
-        <div v-for="d in DIAS" :key="d">{{ d }}</div>
-      </div>
+      <div class="semana"><div v-for="d in DIAS" :key="d">{{ d }}</div></div>
 
       <div v-if="carregando" class="vazio">Abrindo o mês…</div>
 
@@ -125,34 +163,93 @@ onMounted(carregar)
     </div>
 
     <!-- detalhe do dia -->
-    <div v-if="diaAberto" class="veu" @click.self="diaAberto = null">
+    <div v-if="diaAberto && !editando" class="veu" @click.self="diaAberto = null">
       <div class="painel">
         <div class="painel-topo">
           <h2>{{ dataBr(diaAberto) }}</h2>
           <button class="fechar" @click="diaAberto = null">×</button>
         </div>
         <div class="painel-corpo pilha">
-          <div v-for="e in eventosDoDia" :key="e.id" class="entre"
-               style="padding-bottom:12px;border-bottom:1px solid var(--linha)">
-            <div>
-              <strong>{{ e.descricao }}</strong>
-              <span v-if="e.numero_parcela" class="pequeno mudo">
-                ({{ e.numero_parcela }}/{{ e.total_parcelas }})
-              </span>
-              <div class="pequeno mudo linha-flex" style="gap:6px;margin-top:3px">
-                <i class="ponto" :style="{ background: e.categoria_cor }"></i>
-                {{ e.categoria ?? 'Sem categoria' }}
-                <span class="eti" :class="e.status">{{ e.status }}</span>
+          <div v-for="e in eventosDoDia" :key="e.id"
+               style="padding-bottom:14px;border-bottom:1px solid var(--linha)">
+            <div class="entre">
+              <div>
+                <strong>{{ e.descricao }}</strong>
+                <span v-if="e.numero_parcela" class="pequeno mudo">
+                  ({{ e.numero_parcela }}/{{ e.total_parcelas }})
+                </span>
+                <div class="pequeno mudo linha-flex" style="gap:6px;margin-top:3px">
+                  <i class="ponto" :style="{ background: e.categoria_cor }"></i>
+                  {{ e.categoria ?? 'Sem categoria' }}
+                  <span class="eti" :class="e.status">{{ e.status }}</span>
+                </div>
               </div>
-            </div>
-            <div class="direita">
-              <div class="num" :class="e.tipo === 'receita' ? 'entrada' : 'saida'">
+              <div class="num direita" :class="e.tipo === 'receita' ? 'entrada' : 'saida'">
                 {{ e.tipo === 'receita' ? '+' : '−' }} {{ dinheiro(e.valor) }}
               </div>
-              <button v-if="e.status !== 'pago'" class="btn claro mini"
-                      style="margin-top:6px" @click="pagar(e)">Dar baixa</button>
+            </div>
+            <div class="linha-flex" style="margin-top:8px;flex-wrap:wrap">
+              <button v-if="e.status !== 'pago'" class="btn latao mini" @click="pagar(e)">
+                Dar baixa
+              </button>
+              <button v-else class="btn claro mini" @click="desfazer(e)">Desfazer baixa</button>
+              <button class="btn claro mini" @click="editar(e)">Editar</button>
+              <button class="btn risco mini" @click="apagar(e)">Apagar</button>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- edicao -->
+    <div v-if="editando" class="veu" @click.self="editando = null">
+      <div class="painel" style="max-width:460px">
+        <div class="painel-topo">
+          <h2>Editar lançamento</h2>
+          <button class="fechar" @click="editando = null">×</button>
+        </div>
+        <div class="painel-corpo">
+          <div class="campo">
+            <label>Lançamento</label>
+            <input :value="editando.descricao" disabled />
+            <div class="pequeno mudo" style="margin-top:4px">
+              O nome vem do cadastro em <strong>Contas</strong>. Aqui você ajusta só este mês.
+            </div>
+          </div>
+          <div class="dupla">
+            <div class="campo">
+              <label>Vencimento</label>
+              <input v-model="editando.vencimento" type="date" />
+            </div>
+            <div class="campo">
+              <label>Situação</label>
+              <select v-model="editando.status">
+                <option value="pendente">Pendente</option>
+                <option value="pago">Pago</option>
+                <option value="atrasado">Atrasado</option>
+                <option value="cancelado">Cancelado</option>
+              </select>
+            </div>
+          </div>
+          <div class="dupla">
+            <div class="campo">
+              <label>Valor previsto (R$)</label>
+              <input v-model="editando.valor_previsto" type="number" step="0.01" />
+            </div>
+            <div class="campo">
+              <label>Valor pago (R$)</label>
+              <input v-model="editando.valor_pago" type="number" step="0.01" />
+            </div>
+          </div>
+          <div class="campo">
+            <label>Observação</label>
+            <textarea v-model="editando.observacao" rows="2"></textarea>
+          </div>
+          <div v-if="erro" class="aviso mal">{{ erro }}</div>
+        </div>
+        <div class="painel-pe">
+          <button class="btn claro" @click="editando = null">Cancelar</button>
+          <button class="btn" @click="salvarEdicao">Salvar</button>
         </div>
       </div>
     </div>

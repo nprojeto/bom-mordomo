@@ -8,6 +8,7 @@ const abrindo = ref(false)
 const salvando = ref(false)
 const erro = ref('')
 const filtro = ref<'todos' | 'despesa' | 'receita'>('todos')
+const regerar = ref(true)
 
 const vazio = () => ({
   id: null as string | null,
@@ -88,7 +89,8 @@ async function salvar() {
   }
 
   try {
-    if (form.value.id) await api.patch(`/compromissos/${form.value.id}`, { ...corpo, regerar: true })
+    if (form.value.id)
+      await api.patch(`/compromissos/${form.value.id}`, { ...corpo, regerar: regerar.value })
     else await api.post('/compromissos', corpo)
     abrindo.value = false
     await carregar()
@@ -263,6 +265,13 @@ onMounted(carregar)
           <div class="campo">
             <label>Observação</label>
             <textarea v-model="form.observacao" rows="2"></textarea>
+          </div>
+
+          <div v-if="form.id" class="aviso" style="margin-bottom:12px">
+            <label class="linha-flex" style="margin:0;cursor:pointer;font-weight:500">
+              <input v-model="regerar" type="checkbox" style="width:auto;margin:0" />
+              <span>Atualizar também os lançamentos futuros ainda não pagos</span>
+            </label>
           </div>
 
           <div v-if="erro" class="aviso mal">{{ erro }}</div>

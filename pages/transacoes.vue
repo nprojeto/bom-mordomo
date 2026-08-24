@@ -78,6 +78,72 @@ async function ignorar(t: any) {
   await carregar()
 }
 
+const editando = ref<any>(null)
+
+function editar(t: any) {
+  editando.value = {
+    id: t.id,
+    descricao: t.estabelecimento ?? t.descricao,
+    data: String(t.data).slice(0, 10),
+    valor: Math.abs(Number(t.valor)),
+    saida: Number(t.valor) < 0,
+    categoria_id: t.categoria_id ?? '',
+    observacao: t.observacao ?? ''
+  }
+  erro.value = ''
+}
+
+async function salvarEdicao() {
+  erro.value = ''
+  const v = Math.abs(Number(editando.value.valor))
+  try {
+    await api.patch(`/transacoes/${editando.value.id}`, {
+      descricao: editando.value.descricao,
+      estabelecimento: editando.value.descricao,
+      data: editando.value.data,
+      valor: editando.value.saida ? -v : v,
+      tipo: editando.value.saida ? 'debito' : 'credito',
+      categoria_id: editando.value.categoria_id || null,
+      observacao: editando.value.observacao || null
+    })
+    editando.value = null
+    await carregar()
+  } catch (e: any) { erro.value = e.message }
+}
+
+async function apagar(t: any) {
+  if (!confirm('Apagar este lançamento de vez?')) return
+  await api.remove(`/transacoes/${t.id}`)
+  await carregar()
+}
+
+function novoManual() {
+  editando.value = {
+    id: null, descricao: '', data: hojeISO(), valor: '',
+    saida: true, categoria_id: '', observacao: ''
+  }
+  erro.value = ''
+}
+
+async function criarManual() {
+  erro.value = ''
+  const v = Math.abs(Number(editando.value.valor))
+  if (!v) { erro.value = 'Informe o valor.'; return }
+  try {
+    await api.post('/transacoes', {
+      descricao: editando.value.descricao || 'Lançamento',
+      estabelecimento: editando.value.descricao || null,
+      data: editando.value.data,
+      valor: editando.value.saida ? -v : v,
+      tipo: editando.value.saida ? 'debito' : 'credito',
+      categoria_id: editando.value.categoria_id || null,
+      observacao: editando.value.observacao || null
+    })
+    editando.value = null
+    await carregar()
+  } catch (e: any) { erro.value = e.message }
+}
+
 onMounted(carregar)
 </script>
 
@@ -92,6 +158,7 @@ onMounted(carregar)
         <button class="btn claro" :disabled="sincronizando" @click="sincronizar">
           {{ sincronizando ? 'Atualizando…' : '↻ Atualizar' }}
         </button>
+        <button class="btn claro" @click="novoManual">＋ Lançar à mão</button>
         <button class="btn latao" :disabled="conectando" @click="conectarBanco">
           ＋ Conectar banco
         </button>
@@ -167,12 +234,66 @@ onMounted(carregar)
               <td class="direita num" :class="Number(t.valor) < 0 ? 'saida' : 'entrada'">
                 {{ dinheiro(t.valor) }}
               </td>
-              <td class="direita">
-                <button class="btn claro mini" @click="ignorar(t)">Ocultar</button>
+              <td class="direita" style="white-space:nowrap">
+                <button class="btn claro mini" @click="editar(t)">Editar</button>
+                <button class="btn claro mini" style="margin-left:4px" @click="ignorar(t)">Ocultar</button>
+                <button class="btn risco mini" style="margin-left:4px" @click="apagar(t)">×</button>
               </td>
             </tr>
           </tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- editar / lancar a mao -->
+    <div v-if="editando" class="veu" @click.self="editando = null">
+      <div class="painel" style="max-width:460px">
+        <div class="painel-topo">
+          <h2>{{ editando.id ? 'Editar lançamento' : 'Lançar à mão' }}</h2>
+          <button class="fechar" @click="editando = null">×</button>
+        </div>
+        <div class="painel-corpo">
+          <div class="campo">
+            <label>Descrição</label>
+            <input v-model="editando.descricao" placeholder="Mercado, farmácia…" />
+          </div>
+          <div class="dupla">
+            <div class="campo">
+              <label>Valor (R$)</label>
+              <input v-model="editando.valor" type="number" step="0.01" />
+            </div>
+            <div class="campo">
+              <label>Data</label>
+              <input v-model="editando.data" type="date" />
+            </div>
+          </div>
+          <div class="dupla">
+            <div class="campo">
+              <label>Entrada ou saída</label>
+              <select v-model="editando.saida">
+                <option :value="true">Saída — gastei</option>
+                <option :value="false">Entrada — recebi</option>
+              </select>
+            </div>
+            <div class="campo">
+              <label>Categoria</label>
+              <select v-model="editando.categoria_id">
+                <option value="">Sem categoria</option>
+                <option v-for="k in categorias.filter(x => x.tipo === (editando.saida ? 'despesa' : 'receita'))"
+                        :key="k.id" :value="k.id">{{ k.nome }}</option>
+              </select>
+            </div>
+          </div>
+          <div class="campo">
+            <label>Observação</label>
+            <input v-model="editando.observacao" />
+          </div>
+          <div v-if="erro" class="aviso mal">{{ erro }}</div>
+        </div>
+        <div class="painel-pe">
+          <button class="btn claro" @click="editando = null">Cancelar</button>
+          <button class="btn" @click="editando.id ? salvarEdicao() : criarManual()">Salvar</button>
+        </div>
       </div>
     </div>
   </div>
