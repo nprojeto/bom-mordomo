@@ -62,8 +62,15 @@ async function carregar() {
   const [a, m] = ref_.value.split('-').map(Number)
   const de = `${ref_.value}-01`
   const ate = `${ref_.value}-${String(new Date(a, m, 0).getDate()).padStart(2, '0')}`
-  itens.value = await api.get(`/calendario?de=${de}&ate=${ate}`) ?? []
-  carregando.value = false
+  try {
+    itens.value = await api.get(`/calendario?de=${de}&ate=${ate}`) ?? []
+    erro.value = ''
+  } catch (e: any) {
+    erro.value = e.message
+    itens.value = []
+  } finally {
+    carregando.value = false
+  }
 }
 
 async function pagar(o: any) {
@@ -120,6 +127,11 @@ onMounted(carregar)
     <div class="topo">
       <h1>Calendário</h1>
       <p>Tudo o que entra e sai, dia a dia. Clique num dia para editar.</p>
+    </div>
+
+    <div v-if="erro && !editando" class="aviso mal entre" style="margin-bottom:14px">
+      <span>{{ erro }}</span>
+      <button class="btn claro mini" @click="carregar">Tentar de novo</button>
     </div>
 
     <div class="folha">

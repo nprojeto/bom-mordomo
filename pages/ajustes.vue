@@ -17,10 +17,16 @@ function valorDe(chave: string) {
 
 async function carregar() {
   carregando.value = true
-  const [c, k] = await Promise.all([api.get('/config'), api.get('/categorias')])
-  config.value = c ?? []
-  categorias.value = k ?? []
-  carregando.value = false
+  erro.value = ''
+  try {
+    const [c, k] = await Promise.all([api.get('/config'), api.get('/categorias')])
+    config.value = c ?? []
+    categorias.value = k ?? []
+  } catch (e: any) {
+    erro.value = e.message
+  } finally {
+    carregando.value = false
+  }
 }
 
 async function salvarConfig(chave: string, valor: string) {

@@ -194,8 +194,11 @@ async function carregar() {
     resumo.value = g ?? {}
     cartoes.value = f?.cartoes ?? []
     categorias.value = (k ?? []).filter((c: any) => c.tipo === 'despesa')
-  } catch (e: any) { erro.value = e.message }
-  carregando.value = false
+  } catch (e: any) {
+    erro.value = e.message
+  } finally {
+    carregando.value = false
+  }
 }
 </script>
 
@@ -367,9 +370,6 @@ async function carregar() {
       <div v-if="erro" class="aviso mal" style="margin-bottom:12px">{{ erro }}</div>
 
       <div class="linha-flex">
-        <button class="btn latao" :disabled="salvando || cartaoObrigatorio" @click="salvar">
-          {{ salvando ? 'Gravando…' : (form.id ? 'Salvar alteração' : 'Gravar gasto') }}
-        </button>
         <button class="btn claro" @click="form = null">Descartar</button>
       </div>
     </div>

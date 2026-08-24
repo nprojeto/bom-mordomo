@@ -27,10 +27,18 @@ const rotuloTipo: Record<string, string> = {
   investimento: 'Investimento', fundo_reserva: 'Fundo de reserva', meta: 'Meta'
 }
 
+const erroCarga = ref('')
+
 async function carregar() {
   carregando.value = true
-  lista.value = await api.get('/reservas') ?? []
-  carregando.value = false
+  erroCarga.value = ''
+  try {
+    lista.value = await api.get('/reservas') ?? []
+  } catch (e: any) {
+    erroCarga.value = e.message
+  } finally {
+    carregando.value = false
+  }
 }
 
 async function abrirExtrato(r: any) {
@@ -142,6 +150,11 @@ onMounted(carregar)
         <p>O que está guardado — investimento, emergência e metas.</p>
       </div>
       <button class="btn" @click="novaReserva()">＋ Nova reserva</button>
+    </div>
+
+    <div v-if="erroCarga" class="aviso mal entre" style="margin-bottom:16px">
+      <span>{{ erroCarga }}</span>
+      <button class="btn claro mini" @click="carregar">Tentar de novo</button>
     </div>
 
     <div class="cartao" style="margin-bottom:16px">

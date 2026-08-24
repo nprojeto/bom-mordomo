@@ -42,8 +42,9 @@ async function carregar() {
     cartoes.value = f?.cartoes ?? []
   } catch (e: any) {
     erro.value = e.message
+  } finally {
+    carregando.value = false
   }
-  carregando.value = false
 }
 
 async function pagar(id: string, valor: number) {

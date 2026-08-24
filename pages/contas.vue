@@ -39,12 +39,20 @@ const rotuloModalidade: Record<string, string> = {
   unica: 'Uma vez', recorrente: 'Todo mês', parcelada: 'Parcelada'
 }
 
+const erroCarga = ref('')
+
 async function carregar() {
   carregando.value = true
-  const [c, k] = await Promise.all([api.get('/compromissos'), api.get('/categorias')])
-  lista.value = c ?? []
-  categorias.value = k ?? []
-  carregando.value = false
+  erroCarga.value = ''
+  try {
+    const [c, k] = await Promise.all([api.get('/compromissos'), api.get('/categorias')])
+    lista.value = c ?? []
+    categorias.value = k ?? []
+  } catch (e: any) {
+    erroCarga.value = e.message
+  } finally {
+    carregando.value = false
+  }
 }
 
 function novo() { form.value = vazio(); erro.value = ''; abrindo.value = true }
@@ -123,6 +131,11 @@ onMounted(carregar)
               @click="filtro = f as any">
         {{ f === 'todos' ? 'Tudo' : (f === 'despesa' ? 'Saídas' : 'Entradas') }}
       </button>
+    </div>
+
+    <div v-if="erroCarga" class="aviso mal entre" style="margin-bottom:14px">
+      <span>{{ erroCarga }}</span>
+      <button class="btn claro mini" @click="carregar">Tentar de novo</button>
     </div>
 
     <div class="cartao chapa">

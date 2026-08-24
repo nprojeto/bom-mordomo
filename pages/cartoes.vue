@@ -20,10 +20,16 @@ const totalAberto = computed(() =>
 
 async function carregar() {
   carregando.value = true
-  const r = await api.get('/faturas')
-  cartoes.value = r?.cartoes ?? []
-  faturas.value = r?.faturas ?? []
-  carregando.value = false
+  erro.value = ''
+  try {
+    const r = await api.get('/faturas')
+    cartoes.value = r?.cartoes ?? []
+    faturas.value = r?.faturas ?? []
+  } catch (e: any) {
+    erro.value = e.message
+  } finally {
+    carregando.value = false
+  }
 }
 
 function novo() { form.value = vazio(); erro.value = ''; abrindo.value = true }
@@ -111,12 +117,21 @@ function rotuloComp(d: string) {
       <button class="btn" @click="novo()">＋ Novo cartão</button>
     </div>
 
+    <div v-if="erro && !abrindo" class="aviso mal entre" style="margin-bottom:16px">
+      <span>{{ erro }}</span>
+      <button class="btn claro mini" @click="carregar">Tentar de novo</button>
+    </div>
+
     <div v-if="cartoes.length" class="cartao" style="margin-bottom:16px">
       <div class="rotulo">Somando nas faturas abertas</div>
       <div class="selo-valor saida">{{ dinheiro(totalAberto) }}</div>
     </div>
 
     <div v-if="carregando" class="vazio">Consultando…</div>
+
+    <div v-else-if="erro" class="cartao vazio">
+      Não deu para consultar agora.
+    </div>
 
     <div v-else-if="!cartoes.length" class="cartao vazio">
       <div class="simbolo">▤</div>

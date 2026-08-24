@@ -23,19 +23,35 @@ export function useApi() {
     const { data } = await supa.auth.getSession()
     const token = data.session?.access_token
 
-    const resp = await fetch(`${base}${rota}`, {
-      method: opcoes.method ?? 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        apikey: cfg.public.supabaseAnonKey as string,
-        ...(token ? { Authorization: `Bearer ${token}` } : {})
-      },
-      body: opcoes.body ? JSON.stringify(opcoes.body) : undefined
-    })
+    let resp: Response
+    try {
+      resp = await fetch(`${base}${rota}`, {
+        method: opcoes.method ?? 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: cfg.public.supabaseAnonKey as string,
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: opcoes.body ? JSON.stringify(opcoes.body) : undefined
+      })
+    } catch {
+      throw new Error('Sem conexão com o servidor. Verifique sua internet.')
+    }
 
     const texto = await resp.text()
-    const json = texto ? JSON.parse(texto) : null
-    if (!resp.ok) throw new Error(json?.erro ?? `Erro ${resp.status}`)
+    let json: any = null
+    try { json = texto ? JSON.parse(texto) : null } catch { json = null }
+
+    if (!resp.ok) {
+      if (resp.status === 404) {
+        throw new Error(
+          'Esta função ainda não existe no servidor. Atualize a Edge Function no Supabase.')
+      }
+      if (resp.status === 401) {
+        throw new Error('Sua sessão expirou. Saia e entre de novo.')
+      }
+      throw new Error(json?.erro ?? texto?.slice(0, 200) ?? `Erro ${resp.status}`)
+    }
     return json as T
   }
 
