@@ -10,7 +10,7 @@ const detalhe = ref<any>(null)
 
 const vazio = () => ({
   id: null as string | null, nome: '', ultimos4: '',
-  dia_fechamento: 25, dia_vencimento: '', limite: '', cor: '#A33F32', observacao: ''
+  dia_fechamento: 25, dia_vencimento: 5, limite: '', cor: '#A33F32', observacao: ''
 })
 const form = ref(vazio())
 
@@ -45,13 +45,16 @@ async function salvar() {
     erro.value = 'Os 4 últimos dígitos são obrigatórios (só números).'; return
   }
   if (!Number(form.value.dia_fechamento)) {
-    erro.value = 'Informe o dia em que a fatura fecha.'; return
+    erro.value = 'Informe o dia em que a fatura vira.'; return
+  }
+  if (!Number(form.value.dia_vencimento)) {
+    erro.value = 'Informe o dia de vencimento da fatura.'; return
   }
   const corpo = {
     nome: form.value.nome.trim(),
     ultimos4: String(form.value.ultimos4),
     dia_fechamento: Number(form.value.dia_fechamento),
-    dia_vencimento: form.value.dia_vencimento ? Number(form.value.dia_vencimento) : null,
+    dia_vencimento: Number(form.value.dia_vencimento),
     limite: form.value.limite ? Number(form.value.limite) : null,
     cor: form.value.cor,
     observacao: form.value.observacao || null
@@ -122,8 +125,8 @@ function rotuloComp(d: string) {
             <div class="pequeno mudo num">•••• {{ c.ultimos4 }}</div>
           </div>
           <div class="direita pequeno mudo">
-            <div>Fecha dia {{ c.dia_fechamento }}</div>
-            <div v-if="c.dia_vencimento">Vence dia {{ c.dia_vencimento }}</div>
+            <div>Vira dia {{ c.dia_fechamento }}</div>
+            <div>Vence dia {{ c.dia_vencimento }}</div>
           </div>
         </div>
 
@@ -208,19 +211,18 @@ function rotuloComp(d: string) {
 
           <div class="dupla">
             <div class="campo">
-              <label>Dia que a fatura fecha *</label>
+              <label>Dia que a fatura vira *</label>
               <input v-model="form.dia_fechamento" type="number" min="1" max="31" />
             </div>
             <div class="campo">
-              <label>Dia do vencimento</label>
-              <input v-model="form.dia_vencimento" type="number" min="1" max="31"
-                     placeholder="opcional" />
+              <label>Dia do vencimento *</label>
+              <input v-model="form.dia_vencimento" type="number" min="1" max="31" />
             </div>
           </div>
 
           <div class="aviso pequeno" style="margin-bottom:13px">
-            Compras feitas até o dia do fechamento entram na fatura do mês.
-            Depois disso, vão para a fatura seguinte.
+            Compras até o dia da virada entram na fatura do mês; depois disso,
+            vão para a fatura seguinte. O aviso por e-mail chega no dia do vencimento.
           </div>
 
           <div class="dupla">

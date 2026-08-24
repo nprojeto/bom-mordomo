@@ -103,21 +103,19 @@ onMounted(carregar)
         </div>
         <div class="cartao">
           <div class="rotulo">De onde saiu o dinheiro</div>
-          <div class="grade g3" style="margin-top:8px">
+          <div class="grade g2" style="margin-top:8px">
             <div>
-              <div class="pequeno mudo">Dinheiro</div>
-              <div class="num">{{ dinheiro(resumo.gasto_dinheiro) }}</div>
+              <div class="pequeno mudo">Direto do saldo</div>
+              <div class="num" style="font-size:1.1rem">{{ dinheiro(resumo.saiu_do_saldo) }}</div>
+              <div class="pequeno mudo">dinheiro, pix e débito</div>
             </div>
             <div>
-              <div class="pequeno mudo">Débito</div>
-              <div class="num">{{ dinheiro(resumo.gasto_debito) }}</div>
-            </div>
-            <div>
-              <div class="pequeno mudo">Crédito</div>
-              <div class="num">{{ dinheiro(resumo.gasto_credito) }}</div>
+              <div class="pequeno mudo">Nas faturas</div>
+              <div class="num" style="font-size:1.1rem">{{ dinheiro(resumo.nas_faturas) }}</div>
+              <div class="pequeno mudo">crédito, sai no vencimento</div>
             </div>
           </div>
-          <div class="pequeno mudo" style="margin-top:8px">
+          <div class="pequeno mudo" style="margin-top:10px">
             Contas fixas: <span class="num">{{ dinheiro(resumo.despesas_contas) }}</span> ·
             Gastos: <span class="num">{{ dinheiro(resumo.despesas_gastos) }}</span>
           </div>
@@ -141,7 +139,7 @@ onMounted(carregar)
                   <strong>{{ c.nome }}</strong>
                   <span class="num mudo pequeno"> ••{{ c.ultimos4 }}</span>
                   <div class="pequeno mudo">
-                    {{ c.itens_aberta }} lançamento(s) · fecha dia {{ c.dia_fechamento }}
+                    {{ c.itens_aberta }} lançamento(s) · vira dia {{ c.dia_fechamento }}
                   </div>
                 </td>
                 <td class="direita num pequeno mudo">

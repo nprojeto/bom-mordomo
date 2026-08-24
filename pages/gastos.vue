@@ -24,15 +24,16 @@ const form = ref<any>(null)
 let reconhecedor: any = null
 
 const exemplos = [
-  'Mercado 85 reais no débito',
+  'Mercado 85 no débito',
   'Tênis 600 em 6 vezes no Nubank',
-  'Almoço 32 em dinheiro',
+  'Padaria 15 no pix',
   'Farmácia 47 no crédito à vista'
 ]
 
 const rotuloForma: Record<string, string> = {
-  dinheiro: 'Dinheiro', debito: 'Débito', credito: 'Crédito'
+  dinheiro: 'Dinheiro', pix: 'Pix', debito: 'Débito', credito: 'Crédito'
 }
+const FORMAS = ['dinheiro', 'pix', 'debito', 'credito']
 
 const cartaoObrigatorio = computed(() =>
   form.value?.forma === 'credito' && !form.value?.cartao_id)
@@ -262,7 +263,7 @@ async function carregar() {
       <div class="campo">
         <label>Como pagou</label>
         <div class="linha-flex" style="flex-wrap:wrap">
-          <button v-for="f in ['dinheiro','debito','credito']" :key="f"
+          <button v-for="f in FORMAS" :key="f"
                   class="btn mini" :class="form.forma === f ? '' : 'claro'"
                   @click="form.forma = f">
             {{ rotuloForma[f] }}
@@ -321,6 +322,15 @@ async function carregar() {
         <input v-model="form.observacao" />
       </div>
 
+      <div class="aviso pequeno" style="margin-bottom:12px">
+        <template v-if="form.forma === 'credito'">
+          Vai para a fatura do cartão e sai do saldo só no vencimento dela.
+        </template>
+        <template v-else>
+          Sai do saldo na hora, no dia {{ dataBr(form.data) }}.
+        </template>
+      </div>
+
       <div v-if="erro" class="aviso mal" style="margin-bottom:12px">{{ erro }}</div>
 
       <div class="linha-flex">
@@ -340,9 +350,7 @@ async function carregar() {
           <label>Forma</label>
           <select v-model="filtroForma" @change="carregar">
             <option value="">Todas</option>
-            <option value="dinheiro">Dinheiro</option>
-            <option value="debito">Débito</option>
-            <option value="credito">Crédito</option>
+            <option v-for="f in FORMAS" :key="f" :value="f">{{ rotuloForma[f] }}</option>
           </select>
         </div>
         <div>
@@ -353,18 +361,10 @@ async function carregar() {
         </div>
       </div>
 
-      <div class="grade g3" style="margin-top:14px">
-        <div class="pequeno">
-          <span class="rotulo">Dinheiro</span>
-          <div class="num">{{ dinheiro(resumo.por_forma?.dinheiro) }}</div>
-        </div>
-        <div class="pequeno">
-          <span class="rotulo">Débito</span>
-          <div class="num">{{ dinheiro(resumo.por_forma?.debito) }}</div>
-        </div>
-        <div class="pequeno">
-          <span class="rotulo">Crédito</span>
-          <div class="num">{{ dinheiro(resumo.por_forma?.credito) }}</div>
+      <div class="grade g4" style="margin-top:14px">
+        <div v-for="f in FORMAS" :key="f" class="pequeno">
+          <span class="rotulo">{{ rotuloForma[f] }}</span>
+          <div class="num">{{ dinheiro(resumo.por_forma?.[f]) }}</div>
         </div>
       </div>
     </div>
