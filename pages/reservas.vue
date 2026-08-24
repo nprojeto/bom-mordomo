@@ -21,19 +21,33 @@ const vazioM = () => ({
 const formR = ref(vazioR())
 const formM = ref(vazioM())
 
-const total = computed(() => lista.value.reduce((s, r) => s + Number(r.saldo || 0), 0))
+const total = computed(() => lista.value
+  .filter((r) => r.ativo !== false)
+  .reduce((s, r) => s + Number(r.saldo || 0), 0))
 
 const rotuloTipo: Record<string, string> = {
   investimento: 'Investimento', fundo_reserva: 'Fundo de reserva', meta: 'Meta'
 }
 
 const erroCarga = ref('')
+const verArquivadas = ref(false)
+
+const visiveis = computed(() =>
+  verArquivadas.value ? lista.value : lista.value.filter((r) => r.ativo !== false))
+
+const qtdArquivadas = computed(() =>
+  lista.value.filter((r) => r.ativo === false).length)
+
+async function reativar(r: any) {
+  await api.post(`/reservas/reativar/${r.id}`)
+  await carregar()
+}
 
 async function carregar() {
   carregando.value = true
   erroCarga.value = ''
   try {
-    lista.value = await api.get('/reservas') ?? []
+    lista.value = await api.get('/reservas?todas=1') ?? []
   } catch (e: any) {
     erroCarga.value = e.message
   } finally {
@@ -149,7 +163,12 @@ onMounted(carregar)
         <h1>Reservas</h1>
         <p>O que está guardado — investimento, emergência e metas.</p>
       </div>
-      <button class="btn" @click="novaReserva()">＋ Nova reserva</button>
+      <div class="linha-flex">
+        <button v-if="qtdArquivadas" class="btn claro" @click="verArquivadas = !verArquivadas">
+          {{ verArquivadas ? 'Ocultar arquivadas' : `Ver arquivadas (${qtdArquivadas})` }}
+        </button>
+        <button class="btn" @click="novaReserva()">＋ Nova reserva</button>
+      </div>
     </div>
 
     <div v-if="erroCarga" class="aviso mal entre" style="margin-bottom:16px">
@@ -163,16 +182,20 @@ onMounted(carregar)
     </div>
 
     <div v-if="carregando" class="vazio">Consultando…</div>
-    <div v-else-if="!lista.length" class="cartao vazio">
+    <div v-else-if="!visiveis.length" class="cartao vazio">
       <div class="simbolo">◉</div>
       Nenhuma reserva ainda.
     </div>
 
     <div v-else class="grade g2">
-      <div v-for="r in lista" :key="r.id" class="cartao">
+      <div v-for="r in visiveis" :key="r.id" class="cartao"
+           :style="r.ativo === false ? 'opacity:.6' : ''">
         <div class="entre">
           <div>
-            <h3>{{ r.nome }}</h3>
+            <h3>{{ r.nome }}
+              <span v-if="r.ativo === false" class="eti cancelado"
+                    style="vertical-align:middle">arquivada</span>
+            </h3>
             <div class="pequeno mudo">
               {{ rotuloTipo[r.tipo] }}<span v-if="r.instituicao"> · {{ r.instituicao }}</span>
             </div>
@@ -195,7 +218,10 @@ onMounted(carregar)
           <button class="btn latao mini" @click="novaMov(r)">Lançar</button>
           <button class="btn claro mini" @click="abrirExtrato(r)">Extrato</button>
           <button class="btn claro mini" @click="editarReserva(r)">Editar</button>
-          <button class="btn risco mini" @click="arquivarReserva(r)">Arquivar</button>
+          <button v-if="r.ativo === false" class="btn latao mini" @click="reativar(r)">
+            Reativar
+          </button>
+          <button v-else class="btn risco mini" @click="arquivarReserva(r)">Arquivar</button>
         </div>
       </div>
     </div>

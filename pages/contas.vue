@@ -35,6 +35,36 @@ const catsFiltradas = computed(() =>
 const listaFiltrada = computed(() =>
   filtro.value === 'todos' ? lista.value : lista.value.filter((c) => c.tipo === filtro.value))
 
+// Normaliza tudo para "quanto pesa por mes"
+function porMes(c: any) {
+  const v = Number(c.valor || 0)
+  const fator: Record<string, number> = {
+    semanal: 4.33, quinzenal: 2, mensal: 1, bimestral: 1 / 2,
+    trimestral: 1 / 3, semestral: 1 / 6, anual: 1 / 12
+  }
+  if (c.modalidade === 'unica') return 0
+  return v * (fator[c.frequencia] ?? 1)
+}
+
+const totais = computed(() => {
+  const ativos = lista.value.filter((c) => c.ativo !== false)
+  const soma = (tipo: string, fn: (c: any) => number) =>
+    ativos.filter((c) => c.tipo === tipo).reduce((s, c) => s + fn(c), 0)
+  const receitas = soma('receita', porMes)
+  const despesas = soma('despesa', porMes)
+  return {
+    receitas,
+    despesas,
+    sobra: receitas - despesas,
+    qtdReceitas: ativos.filter((c) => c.tipo === 'receita').length,
+    qtdDespesas: ativos.filter((c) => c.tipo === 'despesa').length,
+    parceladas: ativos.filter((c) => c.modalidade === 'parcelada').length
+  }
+})
+
+const totalFiltrado = computed(() =>
+  listaFiltrada.value.reduce((s, c) => s + porMes(c), 0))
+
 const rotuloModalidade: Record<string, string> = {
   unica: 'Uma vez', recorrente: 'Todo mês', parcelada: 'Parcelada'
 }
@@ -120,9 +150,33 @@ onMounted(carregar)
     <div class="topo entre">
       <div>
         <h1>Contas e entradas</h1>
-        <p>O que se repete todo mês, o que é parcelado e o que entra.</p>
+        <p>O que se repete todo mês, o que é parcelado e o que entra.
+          Contas anuais e trimestrais entram no total já divididas por mês.</p>
       </div>
       <button class="btn" @click="novo()">＋ Cadastrar</button>
+    </div>
+
+    <div v-if="!carregando && lista.length" class="grade g3" style="margin-bottom:16px">
+      <div class="cartao">
+        <div class="rotulo">Entra por mês</div>
+        <div class="selo-valor entrada">{{ dinheiro(totais.receitas) }}</div>
+        <div class="pequeno mudo">{{ totais.qtdReceitas }} entrada(s) fixa(s)</div>
+      </div>
+      <div class="cartao">
+        <div class="rotulo">Sai por mês</div>
+        <div class="selo-valor saida">{{ dinheiro(totais.despesas) }}</div>
+        <div class="pequeno mudo">
+          {{ totais.qtdDespesas }} conta(s)<span v-if="totais.parceladas">
+            · {{ totais.parceladas }} parcelada(s)</span>
+        </div>
+      </div>
+      <div class="cartao">
+        <div class="rotulo">Sobra prevista</div>
+        <div class="selo-valor" :class="totais.sobra >= 0 ? 'entrada' : 'saida'">
+          {{ dinheiro(totais.sobra) }}
+        </div>
+        <div class="pequeno mudo">antes dos gastos do dia a dia</div>
+      </div>
     </div>
 
     <div class="linha-flex" style="margin-bottom:14px">
@@ -180,6 +234,19 @@ onMounted(carregar)
               </td>
             </tr>
           </tbody>
+          <tfoot>
+            <tr style="background:#FAFBF9;border-top:2px solid var(--linha)">
+              <td colspan="4" style="font-weight:700">
+                Total {{ filtro === 'todos' ? 'geral' : (filtro === 'despesa' ? 'das saídas' : 'das entradas') }}
+                <span class="pequeno mudo">({{ listaFiltrada.length }} itens, por mês)</span>
+              </td>
+              <td class="direita num" style="font-weight:700;font-size:1.05rem"
+                  :class="filtro === 'receita' ? 'entrada' : 'saida'">
+                {{ dinheiro(totalFiltrado) }}
+              </td>
+              <td></td>
+            </tr>
+          </tfoot>
         </table>
       </div>
     </div>
