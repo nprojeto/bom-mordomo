@@ -5,6 +5,7 @@ const mes = ref(hojeISO().slice(0, 7))
 const resumo = ref<any>(null)
 const proximas = ref<any[]>([])
 const atrasadas = ref<any[]>([])
+const cartoes = ref<any[]>([])
 const carregando = ref(true)
 const erro = ref('')
 
@@ -29,14 +30,16 @@ async function carregar() {
   try {
     const hoje = hojeISO()
     const daqui = new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10)
-    const [r, p, a] = await Promise.all([
+    const [r, p, a, f] = await Promise.all([
       api.get(`/resumo?mes=${mes.value}`),
       api.get(`/ocorrencias?de=${hoje}&ate=${daqui}&status=pendente`),
-      api.get('/ocorrencias?status=atrasado')
+      api.get('/ocorrencias?status=atrasado'),
+      api.get('/faturas')
     ])
     resumo.value = r
     proximas.value = (p ?? []).slice(0, 8)
     atrasadas.value = (a ?? []).filter((x: any) => x.tipo === 'despesa').slice(0, 6)
+    cartoes.value = f?.cartoes ?? []
   } catch (e: any) {
     erro.value = e.message
   }
@@ -95,15 +98,61 @@ onMounted(carregar)
           <div class="rotulo">Ainda a pagar este mês</div>
           <div class="selo-valor">{{ dinheiro(resumo.pendentes) }}</div>
           <div class="pequeno mudo" style="margin-top:6px">
-            Já pago: <span class="num">{{ dinheiro(resumo.pagas) }}</span>
+            Contas fixas já pagas: <span class="num">{{ dinheiro(resumo.pagas) }}</span>
           </div>
         </div>
         <div class="cartao">
-          <div class="rotulo">Gasto no cartão</div>
-          <div class="selo-valor">{{ dinheiro(resumo.gastos_cartao) }}</div>
-          <div class="pequeno mudo" style="margin-top:6px">
-            Lançamentos importados do banco no período.
+          <div class="rotulo">De onde saiu o dinheiro</div>
+          <div class="grade g3" style="margin-top:8px">
+            <div>
+              <div class="pequeno mudo">Dinheiro</div>
+              <div class="num">{{ dinheiro(resumo.gasto_dinheiro) }}</div>
+            </div>
+            <div>
+              <div class="pequeno mudo">Débito</div>
+              <div class="num">{{ dinheiro(resumo.gasto_debito) }}</div>
+            </div>
+            <div>
+              <div class="pequeno mudo">Crédito</div>
+              <div class="num">{{ dinheiro(resumo.gasto_credito) }}</div>
+            </div>
           </div>
+          <div class="pequeno mudo" style="margin-top:8px">
+            Contas fixas: <span class="num">{{ dinheiro(resumo.despesas_contas) }}</span> ·
+            Gastos: <span class="num">{{ dinheiro(resumo.despesas_gastos) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- faturas abertas -->
+      <div v-if="cartoes.length" class="cartao chapa" style="margin-bottom:16px">
+        <div class="cartao-topo">
+          <h2>Faturas abertas</h2>
+          <NuxtLink to="/cartoes" class="btn claro mini">Ver cartões</NuxtLink>
+        </div>
+        <div class="tabela-rolagem">
+          <table>
+            <tbody>
+              <tr v-for="c in cartoes" :key="c.id">
+                <td style="width:30px">
+                  <i class="ponto" :style="{ background: c.cor, width:'11px', height:'11px' }"></i>
+                </td>
+                <td>
+                  <strong>{{ c.nome }}</strong>
+                  <span class="num mudo pequeno"> ••{{ c.ultimos4 }}</span>
+                  <div class="pequeno mudo">
+                    {{ c.itens_aberta }} lançamento(s) · fecha dia {{ c.dia_fechamento }}
+                  </div>
+                </td>
+                <td class="direita num pequeno mudo">
+                  {{ c.vencimento_aberta ? 'vence ' + dataBr(c.vencimento_aberta) : '' }}
+                </td>
+                <td class="direita num saida" style="font-size:1.05rem">
+                  {{ dinheiro(c.total_aberta) }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 

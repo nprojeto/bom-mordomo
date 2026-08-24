@@ -188,7 +188,11 @@ onMounted(carregar)
                 {{ e.tipo === 'receita' ? '+' : '−' }} {{ dinheiro(e.valor) }}
               </div>
             </div>
-            <div class="linha-flex" style="margin-top:8px;flex-wrap:wrap">
+            <div v-if="e.fatura" class="linha-flex" style="margin-top:8px">
+              <NuxtLink to="/gastos" class="btn claro mini">Ver os gastos</NuxtLink>
+              <span class="pequeno mudo">{{ e.itens }} lançamento(s) nesta fatura</span>
+            </div>
+            <div v-else class="linha-flex" style="margin-top:8px;flex-wrap:wrap">
               <button v-if="e.status !== 'pago'" class="btn latao mini" @click="pagar(e)">
                 Dar baixa
               </button>
