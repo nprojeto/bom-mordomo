@@ -234,10 +234,10 @@ onMounted(carregar)
               </td>
             </tr>
           </tbody>
-          <tfoot>
+          <tfoot v-if="filtro !== 'todos'">
             <tr style="background:#FAFBF9;border-top:2px solid var(--linha)">
               <td colspan="4" style="font-weight:700">
-                Total {{ filtro === 'todos' ? 'geral' : (filtro === 'despesa' ? 'das saídas' : 'das entradas') }}
+                Total {{ filtro === 'despesa' ? 'das saídas' : 'das entradas' }}
                 <span class="pequeno mudo">({{ listaFiltrada.length }} itens, por mês)</span>
               </td>
               <td class="direita num" style="font-weight:700;font-size:1.05rem"
