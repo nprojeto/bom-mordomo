@@ -63,6 +63,25 @@ export function useApi() {
   }
 }
 
+/* --------------------------------------------------- recursos do plano */
+// Guardado em memória para não consultar a cada troca de tela.
+const recursosDoPlano = ref<Record<string, boolean> | null>(null)
+
+export async function useRecursos(recarregar = false) {
+  if (recursosDoPlano.value && !recarregar) return recursosDoPlano.value
+  try {
+    const c = await useApi().get('/conta')
+    recursosDoPlano.value = c?.plano?.recursos ?? {}
+  } catch {
+    recursosDoPlano.value = {}
+  }
+  return recursosDoPlano.value
+}
+
+export function limparRecursos() {
+  recursosDoPlano.value = null
+}
+
 /* ------------------------------------------------------------ formato */
 export const dinheiro = (v: any) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })

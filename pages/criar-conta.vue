@@ -2,14 +2,17 @@
 const supa = useSupa()
 const rota = useRoute()
 
+const etapa = ref<'dados' | 'codigo'>('dados')
 const nome = ref('')
 const casa = ref('')
 const email = ref(String(rota.query.email ?? ''))
 const senha = ref('')
 const senha2 = ref('')
+const codigo = ref('')
 const erro = ref('')
-const pronto = ref(false)
+const recado = ref('')
 const carregando = ref(false)
+const espera = ref(0)
 
 const convidado = computed(() => !!rota.query.email)
 
@@ -27,6 +30,17 @@ const forcaSenha = computed(() => {
   return { n, txt: rot[n], cor: cores[n] }
 })
 
+let cronometro: any = null
+function contar() {
+  espera.value = 60
+  clearInterval(cronometro)
+  cronometro = setInterval(() => {
+    espera.value--
+    if (espera.value <= 0) clearInterval(cronometro)
+  }, 1000)
+}
+onUnmounted(() => clearInterval(cronometro))
+
 async function criar() {
   erro.value = ''
   const mail = email.value.trim().toLowerCase()
@@ -40,10 +54,7 @@ async function criar() {
   const { data, error } = await supa.auth.signUp({
     email: mail,
     password: senha.value,
-    options: {
-      data: { nome: nome.value.trim(), casa: casa.value.trim() || null },
-      emailRedirectTo: `${window.location.origin}${useRuntimeConfig().app.baseURL}login`
-    }
+    options: { data: { nome: nome.value.trim(), casa: casa.value.trim() || null } }
   })
   carregando.value = false
 
@@ -54,34 +65,89 @@ async function criar() {
     return
   }
 
-  // se o projeto não exigir confirmação, já entra direto
+  // se a confirmação estiver desligada no projeto, já entra
   if (data.session) { await navigateTo('/'); return }
-  pronto.value = true
+
+  etapa.value = 'codigo'
+  contar()
+}
+
+async function conferir() {
+  erro.value = ''
+  if (codigo.value.length < 6) { erro.value = 'Digite os 6 números.'; return }
+
+  carregando.value = true
+  const { data, error } = await supa.auth.verifyOtp({
+    email: email.value.trim().toLowerCase(),
+    token: codigo.value,
+    type: 'signup'
+  })
+  carregando.value = false
+
+  if (error) {
+    erro.value = String(error.message).toLowerCase().includes('expired')
+      ? 'Este código expirou. Peça outro.'
+      : 'Código incorreto. Confira e tente de novo.'
+    codigo.value = ''
+    return
+  }
+  if (data.session) { await navigateTo('/'); return }
+  erro.value = 'Não consegui concluir. Tente entrar pela tela de acesso.'
+}
+
+async function reenviar() {
+  if (espera.value > 0) return
+  erro.value = ''; recado.value = ''
+  const { error } = await supa.auth.resend({
+    type: 'signup', email: email.value.trim().toLowerCase()
+  })
+  if (error) { erro.value = error.message; return }
+  recado.value = 'Mandamos outro código.'
+  contar()
 }
 </script>
 
 <template>
   <div class="portao">
     <div class="portao-caixa">
-      <template v-if="pronto">
-        <div class="portao-marca">Quase lá</div>
-        <div class="portao-sub">Falta confirmar seu e-mail</div>
-        <div class="aviso bem" style="margin-bottom:18px">
-          Enviamos um link para <strong>{{ email }}</strong>.
-          Abra a mensagem e clique para ativar a conta. Se não achar,
-          verifique o spam.
+      <!-- ---------------- código ---------------- -->
+      <template v-if="etapa === 'codigo'">
+        <div class="portao-marca">Confirme o e-mail</div>
+        <div class="portao-sub">
+          Enviamos 6 números para<br><strong>{{ email }}</strong>
         </div>
-        <NuxtLink to="/login" class="btn claro" style="width:100%">
-          Voltar para a entrada
-        </NuxtLink>
+
+        <CampoCodigo v-model="codigo" :erro="!!erro" @completo="conferir" />
+
+        <div v-if="erro" class="aviso mal" style="margin:16px 0 0">{{ erro }}</div>
+        <div v-if="recado" class="aviso bem" style="margin:16px 0 0">{{ recado }}</div>
+
+        <button class="btn" style="width:100%;margin-top:18px"
+                :disabled="carregando || codigo.length < 6" @click="conferir">
+          {{ carregando ? 'Conferindo…' : 'Confirmar e entrar' }}
+        </button>
+
+        <div class="centro pequeno" style="margin-top:18px">
+          <button v-if="espera <= 0" class="botao-texto" @click="reenviar">
+            Não chegou? Enviar outro código
+          </button>
+          <span v-else class="mudo">Pode pedir outro em {{ espera }}s</span>
+        </div>
+
+        <div class="centro pequeno" style="margin-top:10px">
+          <button class="botao-texto mudo" @click="etapa = 'dados'; erro = ''">
+            Corrigir o e-mail
+          </button>
+        </div>
       </template>
 
+      <!-- ---------------- dados ---------------- -->
       <template v-else>
         <div class="portao-marca">Criar conta</div>
         <div class="portao-sub">
           {{ convidado
             ? 'Você foi convidado — use este mesmo e-mail'
-            : '14 dias para experimentar, sem cartão' }}
+            : 'Experimente sem cartão de crédito' }}
         </div>
 
         <div class="campo">
@@ -138,4 +204,10 @@ async function criar() {
   flex: 1; height: 4px; background: #E7EAE4; border-radius: 999px; overflow: hidden;
 }
 .forca-barra i { display: block; height: 100%; transition: width .2s; }
+
+.botao-texto {
+  background: none; border: 0; padding: 0; font: inherit;
+  color: var(--verde); text-decoration: underline; cursor: pointer;
+}
+.botao-texto.mudo { color: var(--tinta-45); }
 </style>

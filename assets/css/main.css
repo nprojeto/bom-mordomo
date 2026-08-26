@@ -94,6 +94,11 @@ a { color: inherit; }
 }
 .menu .ic { width: 18px; text-align: center; opacity: .9; }
 
+.menu a.travado { color: #6C7A77; }
+.menu a.travado .ic { opacity: .4; }
+.menu a.travado:hover { background: rgba(255,255,255,.04); color: #8A9793; }
+.menu a.travado .cadeado { margin-left: auto; font-size: .7rem; opacity: .65; }
+
 .rodape-barra { margin-top: auto; font-size: .74rem; color: #7C8A86; }
 .rodape-barra button {
   background: none; border: 0; color: #B9C4C0; cursor: pointer;
@@ -285,6 +290,7 @@ input:focus, select:focus, textarea:focus {
   }
   .menu-mobile a .ic { font-size: .95rem; }
   .menu-mobile a.router-link-active { color: var(--latao); }
+  .menu-mobile a.travado { opacity: .4; }
 }
 
 @media (prefers-reduced-motion: reduce) {

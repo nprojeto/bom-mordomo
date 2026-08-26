@@ -269,28 +269,49 @@ onMounted(async () => {
           </table>
         </div>
 
-        <div v-if="dados.sou_dono && (dados.vagas === null || dados.vagas > 0)"
-             style="padding:16px 18px;border-top:1px solid var(--linha)">
-          <label>Chamar outro mordomo para esta casa</label>
-          <div class="linha-flex">
-            <input v-model="novoEmail" type="email" placeholder="email@dapessoa.com"
-                   @keyup.enter="convidar" />
-            <button class="btn" :disabled="convidando" @click="convidar">
-              {{ convidando ? 'Enviando…' : 'Convidar' }}
-            </button>
-          </div>
-          <div class="pequeno mudo" style="margin-top:6px">
-            A pessoa recebe um e-mail e, ao criar a conta com esse mesmo endereço,
-            entra direto aqui — vendo e lançando tudo junto com você.
-          </div>
-        </div>
-      </div>
+        <div style="padding:16px 18px;border-top:1px solid var(--linha)">
+          <template v-if="!dados.sou_dono">
+            <div class="pequeno mudo">
+              Só um mordomo responsável pode chamar mais gente para a família.
+            </div>
+          </template>
 
-      <div v-if="dados.sou_dono && dados.vagas !== null && dados.vagas <= 0"
-           class="aviso" style="margin-bottom:16px">
-        O plano <strong>{{ dados.plano?.nome }}</strong> comporta
-        {{ dados.plano?.max_pessoas }} pessoa(s) e as vagas acabaram.
-        Para chamar mais alguém, mude de plano.
+          <template v-else-if="!dados.em_dia">
+            <div class="aviso mal" style="margin:0">
+              <strong>Assinatura vencida.</strong>
+              Renove para voltar a chamar gente para a família.
+              <NuxtLink to="/planos"><strong>Ver planos ›</strong></NuxtLink>
+            </div>
+          </template>
+
+          <template v-else-if="dados.vagas !== null && dados.vagas <= 0">
+            <div class="aviso" style="margin:0">
+              <strong>Sem vagas.</strong>
+              O plano {{ dados.plano?.nome }} comporta
+              {{ dados.plano?.max_pessoas }} pessoa(s), e todas já estão ocupadas.
+              <NuxtLink to="/planos"><strong>Ver planos maiores ›</strong></NuxtLink>
+            </div>
+          </template>
+
+          <template v-else>
+            <label>Chamar outro mordomo para esta família</label>
+            <div class="linha-flex">
+              <input v-model="novoEmail" type="email" placeholder="email@dapessoa.com"
+                     @keyup.enter="convidar" />
+              <button class="btn" :disabled="convidando" @click="convidar">
+                {{ convidando ? 'Enviando…' : 'Convidar' }}
+              </button>
+            </div>
+            <div class="pequeno mudo" style="margin-top:6px">
+              <template v-if="dados.vagas !== null">
+                Resta{{ dados.vagas > 1 ? 'm' : '' }} <strong>{{ dados.vagas }}</strong>
+                vaga(s) neste plano.
+              </template>
+              A pessoa recebe um e-mail e, ao criar a conta com esse mesmo endereço,
+              entra direto aqui.
+            </div>
+          </template>
+        </div>
       </div>
 
       <!-- convites pendentes -->

@@ -31,7 +31,7 @@ const itens = computed(() => [
   ...(ehAdmin.value
     ? [{ para: '/admin', ic: '✦', txt: 'Administração', curto: 'Admin' }]
     : [])
-].filter((i: any) => temRecurso(i.rec)))
+].map((i: any) => ({ ...i, bloqueado: !temRecurso(i.rec) })))
 
 onMounted(async () => {
   const { data } = await supa.auth.getUser()
@@ -42,6 +42,7 @@ onMounted(async () => {
     ehAdmin.value = !!c?.sou_admin
     familia.value = c?.conta?.nome ?? ''
     recursos.value = c?.plano?.recursos ?? {}
+    await useRecursos(true)
   } catch { /* menu completo se a consulta falhar */ }
 
   try {
@@ -57,6 +58,7 @@ onMounted(async () => {
 })
 
 async function sair() {
+  limparRecursos()
   await supa.auth.signOut()
   await navigateTo('/login')
 }
@@ -70,8 +72,11 @@ async function sair() {
       <div class="marca">Bom Mordomo<span>{{ familia || 'Livro-razão' }}</span></div>
       <div class="regua-latao"></div>
       <nav class="menu">
-        <NuxtLink v-for="i in itens" :key="i.para" :to="i.para">
+        <NuxtLink v-for="i in itens" :key="i.para"
+                  :to="i.bloqueado ? `/planos?bloqueado=${i.rec}` : i.para"
+                  :class="{ travado: i.bloqueado }">
           <span class="ic">{{ i.ic }}</span>{{ i.txt }}
+          <span v-if="i.bloqueado" class="cadeado" title="Fora do seu plano">🔒</span>
         </NuxtLink>
       </nav>
       <div class="rodape-barra">
@@ -81,15 +86,17 @@ async function sair() {
     </aside>
 
     <main class="palco">
-      <NuxtLink v-if="aviso" to="/conta" class="faixa-aviso"
+      <NuxtLink v-if="aviso" to="/planos" class="faixa-aviso"
                 :class="{ grave: aviso.grave }">
-        {{ aviso.texto }} <strong>Ver assinatura ›</strong>
+        {{ aviso.texto }} <strong>Ver planos ›</strong>
       </NuxtLink>
       <slot />
     </main>
 
     <nav class="menu-mobile">
-      <NuxtLink v-for="i in itens" :key="i.para" :to="i.para">
+      <NuxtLink v-for="i in itens" :key="i.para"
+                :to="i.bloqueado ? `/planos?bloqueado=${i.rec}` : i.para"
+                :class="{ travado: i.bloqueado }">
         <span class="ic">{{ i.ic }}</span>{{ i.curto }}
       </NuxtLink>
     </nav>
