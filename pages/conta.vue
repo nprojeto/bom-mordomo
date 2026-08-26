@@ -50,14 +50,20 @@ async function assinar() {
   assinando.value = false
 }
 
+const conferindo = ref(false)
+
 async function conferirPagamento() {
-  erro.value = ''
+  erro.value = ''; recado.value = ''
+  conferindo.value = true
   try {
-    await api.post('/assinatura/sincronizar')
-    recado.value = 'Situação atualizada.'
+    const r = await api.post('/assinatura/sincronizar')
+    recado.value = r?.plano === 'ativo'
+      ? 'Pagamento confirmado. Acesso liberado.'
+      : 'Situação atualizada.'
     await carregar()
-    setTimeout(() => (recado.value = ''), 3000)
+    setTimeout(() => (recado.value = ''), 4000)
   } catch (e: any) { erro.value = e.message }
+  conferindo.value = false
 }
 
 async function cancelarAssinatura() {
@@ -191,15 +197,21 @@ onMounted(async () => {
               {{ assinando ? 'Abrindo…' : (temAssinatura ? 'Retomar assinatura' : 'Assinar') }}
             </button>
             <button v-else-if="podePagar && plano === 'ativo' && !semPrazo"
-                    class="btn claro" @click="conferirPagamento">
-              Atualizar situação
+                    class="btn claro" :disabled="conferindo" @click="conferirPagamento">
+              {{ conferindo ? 'Conferindo…' : 'Atualizar situação' }}
             </button>
           </div>
         </div>
 
-        <div v-if="!dados.em_dia" class="aviso mal" style="margin-top:14px">
-          O acesso expirou. Você ainda consegue consultar tudo, mas não dá
-          para lançar nada novo até renovar.
+        <div v-if="!dados.em_dia" class="aviso mal entre" style="margin-top:14px">
+          <span>
+            O acesso expirou. Você ainda consegue consultar tudo, mas não dá
+            para lançar nada novo até renovar.
+          </span>
+          <button v-if="podePagar" class="btn claro mini" :disabled="conferindo"
+                  @click="conferirPagamento">
+            {{ conferindo ? 'Conferindo…' : 'Já paguei' }}
+          </button>
         </div>
         <div v-else-if="plano === 'teste' && dias <= 5 && !semPrazo"
              class="aviso" style="margin-top:14px">
