@@ -3,10 +3,11 @@ const rota = useRoute()
 const supa = useSupa()
 const api = useApi()
 const email = ref('')
-const casa = ref('')
 const aviso = ref<{ texto: string; grave: boolean } | null>(null)
 
-const nuLogin = computed(() => rota.path === '/login')
+// telas de acesso ocupam a pagina inteira, sem menu
+const SEM_MENU = ['/login', '/criar-conta', '/recuperar', '/nova-senha']
+const semMenu = computed(() => SEM_MENU.includes(rota.path))
 
 const itens = [
   { para: '/',            ic: '◈', txt: 'Painel',     curto: 'Painel' },
@@ -23,10 +24,9 @@ const itens = [
 onMounted(async () => {
   const { data } = await supa.auth.getUser()
   email.value = data.user?.email ?? ''
-  if (nuLogin.value) return
+  if (semMenu.value) return
   try {
     const a = await api.get('/assinatura')
-    casa.value = ''
     if (!a?.em_dia) {
       aviso.value = { texto: 'Seu acesso expirou — não dá para lançar nada novo.', grave: true }
     } else if (a?.plano === 'teste' && Number(a.dias_restantes) <= 5) {
@@ -44,7 +44,7 @@ async function sair() {
 </script>
 
 <template>
-  <div v-if="nuLogin"><slot /></div>
+  <div v-if="semMenu"><slot /></div>
 
   <div v-else class="moldura">
     <aside class="barra">
