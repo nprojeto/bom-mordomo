@@ -87,6 +87,18 @@ async function salvar() {
   if (precoLido.value === null && Number(editando.value.preco) !== 0) {
     erro.value = 'Escreva o preço, algo como 19,90.'; return
   }
+
+  // mexer no preço de um plano com assinantes altera cobranças de verdade
+  const original = planos.value.find((x) => x.id === editando.value.id)
+  const mudouPreco = original && Number(original.preco) !== Number(precoLido.value ?? 0)
+  if (mudouPreco && original.assinantes > 0) {
+    const ok = confirm(
+      `"${original.nome}" tem ${original.assinantes} assinante(s).\n\n` +
+      `Mudar de ${dinheiro(original.preco)} para ${dinheiro(precoLido.value ?? 0)} ` +
+      `altera o que eles pagam nas próximas cobranças.\n\nConfirma?`)
+    if (!ok) return
+  }
+
   salvando.value = true
   const corpo = {
     nome: editando.value.nome.trim(),
@@ -100,12 +112,26 @@ async function salvar() {
     ordem: Number(editando.value.ordem)
   }
   try {
-    if (editando.value.id) await api.patch(`/admin/planos/${editando.value.id}`, corpo)
-    else await api.post('/admin/planos', corpo)
-    recado.value = 'Plano guardado.'
+    const r = editando.value.id
+      ? await api.patch(`/admin/planos/${editando.value.id}`, corpo)
+      : await api.post('/admin/planos', corpo)
+
+    const pub = r?.publicacao
+    if (!pub) {
+      recado.value = 'Plano guardado.'
+    } else if (pub.ok && pub.confere) {
+      recado.value = pub.criado
+        ? `Plano guardado e publicado no Mercado Pago. Já dá para assinar.`
+        : `Plano guardado e atualizado no Mercado Pago.`
+    } else if (pub.ok) {
+      erro.value = `Plano guardado, mas ${pub.motivo}. Confira no Mercado Pago.`
+    } else {
+      erro.value = `Plano guardado, mas não foi publicado: ${pub.motivo}.`
+    }
+
     editando.value = null
     await carregar()
-    setTimeout(() => (recado.value = ''), 3000)
+    setTimeout(() => (recado.value = ''), 4000)
   } catch (e: any) { erro.value = e.message }
   salvando.value = false
 }
@@ -348,6 +374,11 @@ onMounted(carregar)
               <template v-if="p.mp_plan_id">
                 Publicado no Mercado Pago · <span class="num">{{ p.mp_plan_id.slice(0, 12) }}…</span>
               </template>
+              <template v-else-if="Number(p.preco) < 1">
+                <span class="saida">
+                  O Mercado Pago não aceita menos de R$ 1,00 — ninguém consegue assinar
+                </span>
+              </template>
               <template v-else>
                 <span class="saida">Ainda não publicado — não dá para assinar</span>
               </template>
@@ -355,10 +386,10 @@ onMounted(carregar)
 
             <div class="linha-flex" style="margin-top:14px;flex-wrap:wrap">
               <button class="btn claro mini" @click="editar(p)">Editar</button>
-              <button class="btn latao mini" :disabled="publicando === p.id || !p.preco"
+              <button v-if="!p.mp_plan_id" class="btn latao mini"
+                      :disabled="publicando === p.id || Number(p.preco) < 1"
                       @click="publicar(p)">
-                {{ publicando === p.id ? 'Publicando…'
-                  : (p.mp_plan_id ? 'Atualizar no MP' : 'Publicar no MP') }}
+                {{ publicando === p.id ? 'Publicando…' : 'Publicar no Mercado Pago' }}
               </button>
               <button v-if="!p.assinantes" class="btn risco mini" @click="apagar(p)">
                 Apagar
@@ -440,10 +471,9 @@ onMounted(carregar)
             </label>
           </div>
 
-          <div v-if="editando.id && editando.mp_plan_id" class="aviso pequeno"
-               style="margin-top:14px">
-            Mudou o preço? Depois de salvar, clique em <strong>Atualizar no MP</strong>
-            para valer também no Mercado Pago.
+          <div class="aviso pequeno" style="margin-top:14px">
+            Nome e preço vão para o Mercado Pago automaticamente ao salvar.
+            O resto fica só aqui.
           </div>
         </div>
 
