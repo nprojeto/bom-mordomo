@@ -11,8 +11,7 @@ const salvando = ref(false)
 const publicando = ref(false)
 const semAcesso = ref(false)
 
-const form = ref({ nome: '', preco: '', token: '', plan_id: '' })
-const mostrarToken = ref(false)
+const form = ref({ nome: '', preco: '', plan_id: '' })
 
 const rotuloPlano: Record<string, string> = {
   teste: 'Em teste', ativo: 'Assinante',
@@ -44,13 +43,9 @@ async function salvarPlano() {
   erro.value = ''; recado.value = ''
   salvando.value = true
   try {
-    const corpo: any = { nome: form.value.nome, preco: Number(form.value.preco) }
-    if (form.value.token.trim()) corpo.token = form.value.token.trim()
-    if (form.value.plan_id.trim() !== (plano.value?.plan_id ?? '')) {
-      corpo.plan_id = form.value.plan_id.trim()
-    }
-    await api.patch('/admin/plano', corpo)
-    form.value.token = ''
+    await api.patch('/admin/plano', {
+      nome: form.value.nome, preco: Number(form.value.preco)
+    })
     recado.value = 'Guardado.'
     await carregar()
     setTimeout(() => (recado.value = ''), 3000)
@@ -219,35 +214,33 @@ onMounted(carregar)
         <div class="cartao" style="margin-bottom:16px">
           <h2 style="margin-bottom:4px">Credencial do Mercado Pago</h2>
           <p class="pequeno mudo" style="margin:0 0 14px">
-            Access Token de produção, do painel de desenvolvedores.
-            Fica guardado no servidor e nunca volta para esta tela.
+            Por segurança, a credencial não passa por esta tela nem fica no banco.
+            Ela vive apenas nos segredos do servidor.
           </p>
 
-          <div v-if="plano.token_configurado" class="aviso bem" style="margin-bottom:14px">
-            Credencial configurada
-            <span class="num">{{ plano.token_final }}</span>
-            <span v-if="plano.token_ambiente" class="pequeno">
-              — vinda das configurações do servidor
-            </span>
+          <div v-if="plano.token_configurado && plano.token_producao"
+               class="aviso bem">
+            Credencial de produção configurada no servidor.
           </div>
-          <div v-else class="aviso mal" style="margin-bottom:14px">
+          <div v-else-if="plano.token_configurado" class="aviso">
+            Há uma credencial configurada, mas ela <strong>não é de produção</strong>.
+            Cobranças reais não vão funcionar.
+          </div>
+          <div v-else class="aviso mal">
             Sem credencial. Enquanto isso, ninguém consegue assinar.
           </div>
 
-          <div class="campo">
-            <label>{{ plano.token_configurado ? 'Trocar credencial' : 'Colar credencial' }}</label>
-            <div class="linha-flex">
-              <input v-model="form.token" :type="mostrarToken ? 'text' : 'password'"
-                     placeholder="APP_USR-..." autocomplete="off" />
-              <button class="btn claro mini" @click="mostrarToken = !mostrarToken">
-                {{ mostrarToken ? 'Ocultar' : 'Ver' }}
-              </button>
+          <details style="margin-top:14px">
+            <summary class="pequeno mudo" style="cursor:pointer">
+              Como trocar a credencial
+            </summary>
+            <div class="pequeno mudo" style="margin-top:10px;line-height:1.7">
+              No Supabase, abra <strong>Edge Functions → Secrets</strong> e edite
+              o segredo <span class="num">MP_ACCESS_TOKEN</span> com o Access Token
+              de produção do painel de desenvolvedores do Mercado Pago.
+              A mudança vale na hora, sem publicar nada.
             </div>
-          </div>
-
-          <button class="btn" :disabled="salvando || !form.token" @click="salvarPlano">
-            {{ salvando ? 'Guardando…' : 'Guardar credencial' }}
-          </button>
+          </details>
         </div>
 
         <!-- situacao -->
