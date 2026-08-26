@@ -10,7 +10,7 @@ const carregando = ref(true)
 const erro = ref('')
 const recado = ref('')
 const salvando = ref(false)
-const publicando = ref('')
+
 const semAcesso = ref(false)
 
 const editando = ref<any>(null)
@@ -112,45 +112,16 @@ async function salvar() {
     ordem: Number(editando.value.ordem)
   }
   try {
-    const r = editando.value.id
-      ? await api.patch(`/admin/planos/${editando.value.id}`, corpo)
-      : await api.post('/admin/planos', corpo)
+    if (editando.value.id) await api.patch(`/admin/planos/${editando.value.id}`, corpo)
+    else await api.post('/admin/planos', corpo)
 
-    const pub = r?.publicacao
-    if (!pub) {
-      recado.value = 'Plano guardado.'
-    } else if (pub.ok && pub.confere) {
-      recado.value = pub.criado
-        ? `Plano guardado e publicado no Mercado Pago. Já dá para assinar.`
-        : `Plano guardado e atualizado no Mercado Pago.`
-    } else if (pub.ok) {
-      erro.value = `Plano guardado, mas ${pub.motivo}. Confira no Mercado Pago.`
-    } else {
-      erro.value = `Plano guardado, mas não foi publicado: ${pub.motivo}.`
-    }
+    recado.value = 'Plano guardado. O preço já vale para as próximas compras.'
 
     editando.value = null
     await carregar()
     setTimeout(() => (recado.value = ''), 4000)
   } catch (e: any) { erro.value = e.message }
   salvando.value = false
-}
-
-async function publicar(p: any) {
-  erro.value = ''; recado.value = ''
-  const valor = Number(p.preco)
-  if (!confirm(`Publicar "${p.nome}" cobrando ${dinheiro(valor)} por mês?`)) return
-  publicando.value = p.id
-  try {
-    const r = await api.post(`/admin/planos/publicar/${p.id}`)
-    recado.value = r.aviso
-      ? r.aviso
-      : (r.criado
-        ? `"${p.nome}" publicado. Quem estiver nele já pode assinar.`
-        : `"${p.nome}" atualizado no Mercado Pago.`)
-    await carregar()
-  } catch (e: any) { erro.value = e.message }
-  publicando.value = ''
 }
 
 async function apagar(p: any) {
@@ -311,6 +282,10 @@ onMounted(carregar)
               <div class="pequeno mudo" style="margin-top:4px">
                 Troca-se em Supabase → Edge Functions → Secrets → MP_ACCESS_TOKEN
               </div>
+              <div class="pequeno mudo" style="margin-top:6px">
+                Cobrança avulsa mensal — Pix, boleto e cartão. Sem renovação
+                automática: o cliente é avisado por e-mail 3, 2 e 1 dia antes.
+              </div>
             </div>
             <button class="btn claro mini" @click="copiar(integracao.webhook_url)">
               Copiar aviso de pagamento
@@ -370,27 +345,12 @@ onMounted(carregar)
               </div>
             </div>
 
-            <div class="pequeno mudo" style="margin-top:12px">
-              <template v-if="p.mp_plan_id">
-                Publicado no Mercado Pago · <span class="num">{{ p.mp_plan_id.slice(0, 12) }}…</span>
-              </template>
-              <template v-else-if="Number(p.preco) < 1">
-                <span class="saida">
-                  O Mercado Pago não aceita menos de R$ 1,00 — ninguém consegue assinar
-                </span>
-              </template>
-              <template v-else>
-                <span class="saida">Ainda não publicado — não dá para assinar</span>
-              </template>
+            <div v-if="Number(p.preco) < 1" class="pequeno saida" style="margin-top:12px">
+              O Mercado Pago não aceita menos de R$ 1,00 — ninguém consegue pagar
             </div>
 
             <div class="linha-flex" style="margin-top:14px;flex-wrap:wrap">
               <button class="btn claro mini" @click="editar(p)">Editar</button>
-              <button v-if="!p.mp_plan_id" class="btn latao mini"
-                      :disabled="publicando === p.id || Number(p.preco) < 1"
-                      @click="publicar(p)">
-                {{ publicando === p.id ? 'Publicando…' : 'Publicar no Mercado Pago' }}
-              </button>
               <button v-if="!p.assinantes" class="btn risco mini" @click="apagar(p)">
                 Apagar
               </button>
@@ -472,8 +432,8 @@ onMounted(carregar)
           </div>
 
           <div class="aviso pequeno" style="margin-top:14px">
-            Nome e preço vão para o Mercado Pago automaticamente ao salvar.
-            O resto fica só aqui.
+            O preço vale a partir da próxima compra. Quem já pagou o mês
+            corrente não é afetado.
           </div>
         </div>
 

@@ -135,12 +135,12 @@ a { color: inherit; }
   display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .mes-titulo { font-family: var(--serif); font-size: 1.35rem; text-transform: capitalize; }
 
-.semana { display: grid; grid-template-columns: repeat(9, 1fr);
+.semana { display: grid; grid-template-columns: repeat(10, 1fr);
   border-top: 1px solid var(--linha); background: var(--papel); }
 .semana div { padding: 8px 6px; font-size: .68rem; font-weight: 700;
   letter-spacing: .08em; text-transform: uppercase; color: var(--tinta-45); text-align: center; }
 
-.malha { display: grid; grid-template-columns: repeat(9, 1fr); }
+.malha { display: grid; grid-template-columns: repeat(10, 1fr); }
 .dia { min-height: 108px; border-top: 1px solid var(--linha);
   border-right: 1px solid var(--linha); padding: 6px 7px; background: var(--carta);
   cursor: pointer; transition: background .12s; }
@@ -239,6 +239,34 @@ input:focus, select:focus, textarea:focus {
 .barra-meta { height: 6px; background: #E7EAE4; border-radius: 999px; overflow: hidden; }
 .barra-meta i { display: block; height: 100%; border-radius: 999px; }
 
+/* --------------------------------------------------------- balao do menu */
+.balao-fundo { position: fixed; inset: 0; z-index: 70; }
+
+.balao {
+  position: fixed; width: 262px; max-width: calc(100vw - 24px);
+  background: var(--carta); border: 1px solid var(--linha);
+  border-radius: 12px; padding: 15px 16px;
+  box-shadow: 0 18px 44px -14px rgba(22,33,31,.45);
+}
+.balao::before {
+  content: ''; position: absolute; left: -6px; top: 18px;
+  width: 11px; height: 11px; background: var(--carta);
+  border-left: 1px solid var(--linha); border-bottom: 1px solid var(--linha);
+  transform: rotate(45deg);
+}
+.balao-topo { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.balao-cadeado { font-size: .85rem; }
+.balao p { margin: 0 0 8px; font-size: .84rem; color: var(--tinta-70); line-height: 1.5; }
+.balao .balao-nota { color: var(--saida); font-size: .78rem; margin-bottom: 12px; }
+
+@media (max-width: 760px) {
+  .balao {
+    left: 12px !important; right: 12px; width: auto;
+    top: auto !important; bottom: 84px;
+  }
+  .balao::before { display: none; }
+}
+
 /* --------------------------------------------------------- faixa de aviso */
 .faixa-aviso {
   display: block; text-decoration: none;
@@ -278,7 +306,7 @@ input:focus, select:focus, textarea:focus {
   .tabela-rolagem table { min-width: 620px; }
 
   .menu-mobile {
-    display: grid; grid-template-columns: repeat(9, 1fr);
+    display: grid; grid-template-columns: repeat(10, 1fr);
     position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
     background: var(--tinta); border-top: 2px solid var(--latao);
     padding: 6px 2px calc(6px + env(safe-area-inset-bottom));

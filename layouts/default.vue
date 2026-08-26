@@ -7,6 +7,28 @@ const aviso = ref<{ texto: string; grave: boolean } | null>(null)
 const ehAdmin = ref(false)
 const familia = ref('')
 const recursos = ref<Record<string, boolean>>({})
+const catalogo = ref<any[]>([])
+const balao = ref<any>(null)
+
+function explicar(item: any, ev: MouseEvent) {
+  const alvo = (ev.currentTarget as HTMLElement).getBoundingClientRect()
+  const r = catalogo.value.find((x) => x.chave === item.rec)
+  balao.value = {
+    rec: item.rec,
+    nome: r?.nome ?? item.txt,
+    texto: r?.texto ?? 'Esta parte do sistema.',
+    topo: Math.min(alvo.top, window.innerHeight - 200),
+    esquerda: alvo.right + 10
+  }
+}
+
+function fecharBalao() { balao.value = null }
+
+async function verPlanos() {
+  const rec = balao.value?.rec
+  fecharBalao()
+  await navigateTo(`/planos?bloqueado=${rec}`)
+}
 
 // telas de acesso ocupam a pagina inteira, sem menu
 const SEM_MENU = ['/login', '/criar-conta', '/recuperar', '/nova-senha']
@@ -27,6 +49,7 @@ const itens = computed(() => [
   { para: '/cartoes',     ic: '▤', txt: 'Cartões',    curto: 'Cartões', rec: 'cartoes' },
   { para: '/reservas',    ic: '◉', txt: 'Reservas',   curto: 'Reservas',rec: 'reservas' },
   { para: '/ajustes',     ic: '⚙', txt: 'Ajustes',    curto: 'Ajustes' },
+  { para: '/planos',      ic: '◇', txt: 'Planos',     curto: 'Planos' },
   { para: '/conta',       ic: '⌂', txt: 'Minha casa', curto: 'Casa' },
   ...(ehAdmin.value
     ? [{ para: '/admin', ic: '✦', txt: 'Administração', curto: 'Admin' }]
@@ -42,6 +65,7 @@ onMounted(async () => {
     ehAdmin.value = !!c?.sou_admin
     familia.value = c?.conta?.nome ?? ''
     recursos.value = c?.plano?.recursos ?? {}
+    catalogo.value = c?.recursos_catalogo ?? []
     await useRecursos(true)
   } catch { /* menu completo se a consulta falhar */ }
 
@@ -72,11 +96,11 @@ async function sair() {
       <div class="marca">Bom Mordomo<span>{{ familia || 'Livro-razão' }}</span></div>
       <div class="regua-latao"></div>
       <nav class="menu">
-        <NuxtLink v-for="i in itens" :key="i.para"
-                  :to="i.bloqueado ? `/planos?bloqueado=${i.rec}` : i.para"
-                  :class="{ travado: i.bloqueado }">
+        <NuxtLink v-for="i in itens" :key="i.para" :to="i.para"
+                  :class="{ travado: i.bloqueado }"
+                  @click="i.bloqueado && ($event.preventDefault(), explicar(i, $event))">
           <span class="ic">{{ i.ic }}</span>{{ i.txt }}
-          <span v-if="i.bloqueado" class="cadeado" title="Fora do seu plano">🔒</span>
+          <span v-if="i.bloqueado" class="cadeado">🔒</span>
         </NuxtLink>
       </nav>
       <div class="rodape-barra">
@@ -94,11 +118,27 @@ async function sair() {
     </main>
 
     <nav class="menu-mobile">
-      <NuxtLink v-for="i in itens" :key="i.para"
-                :to="i.bloqueado ? `/planos?bloqueado=${i.rec}` : i.para"
-                :class="{ travado: i.bloqueado }">
+      <NuxtLink v-for="i in itens" :key="i.para" :to="i.para"
+                :class="{ travado: i.bloqueado }"
+                @click="i.bloqueado && ($event.preventDefault(), explicar(i, $event))">
         <span class="ic">{{ i.ic }}</span>{{ i.curto }}
       </NuxtLink>
     </nav>
+    <!-- explicacao do que esta travado -->
+    <div v-if="balao" class="balao-fundo" @click="fecharBalao">
+      <div class="balao" :style="{ top: balao.topo + 'px', left: balao.esquerda + 'px' }"
+           @click.stop>
+        <div class="balao-topo">
+          <span class="balao-cadeado">🔒</span>
+          <strong>{{ balao.nome }}</strong>
+        </div>
+        <p>{{ balao.texto }}</p>
+        <p class="balao-nota">Não faz parte do seu plano atual.</p>
+        <div class="linha-flex">
+          <button class="btn latao mini" @click="verPlanos">Ver planos</button>
+          <button class="btn claro mini" @click="fecharBalao">Agora não</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>

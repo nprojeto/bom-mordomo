@@ -7,6 +7,9 @@ const carregando = ref(true)
 const erro = ref('')
 const assinando = ref('')
 
+const emTeste = computed(() => !!dados.value?.em_teste)
+const dias = computed(() => Number(dados.value?.dias_restantes ?? 0))
+
 const motivo = computed(() => String(rota.query.bloqueado ?? ''))
 
 const nomeRecurso = computed(() => {
@@ -39,7 +42,7 @@ function resolve(plano: any) {
 
 async function assinar(plano: any) {
   erro.value = ''
-  if (!confirm(`Assinar "${plano.nome}" por ${dinheiro(plano.preco)} ao mês?`)) return
+  if (!confirm(`Pagar ${dinheiro(plano.preco)} pelo próximo mês no plano "${plano.nome}"?`)) return
   assinando.value = plano.id
   try {
     const r = await api.post('/assinatura/checkout', { plano_id: plano.id })
@@ -72,8 +75,9 @@ onMounted(carregar)
     <div v-if="carregando" class="vazio">Consultando…</div>
 
     <template v-else-if="dados">
-      <div v-if="dados.plano_atual" class="cartao" style="margin-bottom:16px">
-        <div class="entre">
+      <div v-if="dados.plano_atual" class="cartao" style="margin-bottom:16px"
+           :style="emTeste ? 'border-left:3px solid var(--latao)' : ''">
+        <div class="entre" style="flex-wrap:wrap;gap:14px">
           <div>
             <div class="rotulo">Seu plano hoje</div>
             <h2>{{ dados.plano_atual.nome }}</h2>
@@ -82,9 +86,47 @@ onMounted(carregar)
               até {{ dados.plano_atual.max_pessoas }} pessoa(s)
             </div>
           </div>
-          <span class="eti" :class="dados.em_dia ? 'pago' : 'atrasado'">
-            {{ dados.em_dia ? 'em dia' : 'vencido' }}
-          </span>
+
+          <div class="direita">
+            <span class="eti" :class="emTeste ? 'pendente' : (dados.em_dia ? 'pago' : 'atrasado')">
+              {{ emTeste ? 'em teste' : (dados.em_dia ? 'em dia' : 'vencido') }}
+            </span>
+            <div v-if="emTeste || !dados.em_dia" class="pequeno mudo" style="margin-top:6px">
+              <template v-if="emTeste && dias > 1">
+                Faltam {{ dias }} dias — até {{ dataBr(dados.vence_em) }}
+              </template>
+              <template v-else-if="emTeste && dias === 1">Último dia de teste</template>
+              <template v-else-if="emTeste">Termina hoje</template>
+              <template v-else>Venceu em {{ dataBr(dados.vence_em) }}</template>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="emTeste" class="aviso" style="margin-top:14px">
+          <div class="entre" style="flex-wrap:wrap;gap:12px">
+            <span>
+              Você está no período de teste. Não precisa fazer nada agora —
+              se pagar antes, o mês comprado começa quando o teste acabar.
+            </span>
+            <button class="btn latao mini"
+                    :disabled="assinando === dados.plano_atual.id
+                      || !dados.pagamento_disponivel"
+                    @click="assinar({ ...dados.plano_atual, id: dados.plano_atual.id })">
+              {{ assinando === dados.plano_atual.id ? 'Abrindo…' : 'Pagar agora' }}
+            </button>
+          </div>
+        </div>
+
+        <div v-else-if="!dados.em_dia" class="aviso mal" style="margin-top:14px">
+          <div class="entre" style="flex-wrap:wrap;gap:12px">
+            <span>Seu acesso para lançar está pausado. Renove para voltar.</span>
+            <button class="btn latao mini"
+                    :disabled="assinando === dados.plano_atual.id
+                      || !dados.pagamento_disponivel"
+                    @click="assinar({ ...dados.plano_atual, id: dados.plano_atual.id })">
+              Renovar
+            </button>
+          </div>
         </div>
       </div>
 
@@ -97,7 +139,9 @@ onMounted(carregar)
              :class="{ atual: p.atual, resolve: resolve(p) && !p.atual }">
           <div class="entre">
             <h3>{{ p.nome }}</h3>
-            <span v-if="p.atual" class="eti pago">seu plano</span>
+            <span v-if="p.atual" class="eti" :class="emTeste ? 'pendente' : 'pago'">
+              {{ emTeste ? 'em teste' : 'seu plano' }}
+            </span>
             <span v-else-if="resolve(p)" class="eti" style="background:var(--latao-fraco);color:#7A5F19">
               resolve
             </span>
@@ -124,22 +168,30 @@ onMounted(carregar)
           <button v-if="!p.atual" class="btn latao" style="width:100%;margin-top:16px"
                   :disabled="assinando === p.id || !p.disponivel || !dados.pagamento_disponivel"
                   @click="assinar(p)">
-            {{ assinando === p.id ? 'Abrindo…' : 'Assinar este' }}
+            {{ assinando === p.id ? 'Abrindo…' : 'Pagar este' }}
+          </button>
+          <button v-else-if="emTeste || !dados.em_dia"
+                  class="btn latao" style="width:100%;margin-top:16px"
+                  :disabled="assinando === p.id || !p.disponivel || !dados.pagamento_disponivel"
+                  @click="assinar(p)">
+            {{ assinando === p.id ? 'Abrindo…'
+              : (emTeste ? 'Pagar agora' : 'Renovar') }}
           </button>
           <div v-else class="pequeno mudo centro" style="margin-top:16px">
             É o que você usa hoje
           </div>
 
           <div v-if="!p.disponivel && !p.atual" class="pequeno mudo centro" style="margin-top:6px">
-            Ainda não disponível para contratação
+            Sem preço definido — fale com o suporte
           </div>
         </div>
       </div>
 
       <div class="cartao" style="margin-top:16px">
         <div class="pequeno mudo">
-          A cobrança é mensal pelo Mercado Pago e pode ser cancelada quando quiser.
-          Ao trocar de plano, o novo passa a valer assim que o pagamento entra.
+          Pagamento mensal pelo Mercado Pago — <strong>Pix, boleto ou cartão</strong>,
+          sem precisar de conta lá. Não há cobrança automática: nada é debitado
+          sem você mandar. Avisamos por e-mail 3, 2 e 1 dia antes de vencer.
         </div>
       </div>
     </template>

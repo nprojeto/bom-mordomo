@@ -66,54 +66,6 @@ async function conferirPagamento() {
   conferindo.value = false
 }
 
-async function cancelarAssinatura() {
-  if (!confirm('Cancelar a assinatura? O acesso continua até o fim do período já pago.')) return
-  erro.value = ''
-  try {
-    await api.post('/assinatura/cancelar')
-    recado.value = 'Assinatura cancelada.'
-    await carregar()
-  } catch (e: any) { erro.value = e.message }
-}
-
-async function carregar() {
-  carregando.value = true
-  erro.value = ''
-  try {
-    const [c, a] = await Promise.all([api.get('/conta'), api.get('/assinatura')])
-    dados.value = { ...c, assinatura: a }
-    nomeCasa.value = c?.conta?.nome ?? ''
-    try { pagamentos.value = await api.get('/assinatura/pagamentos') ?? [] } catch { /* opcional */ }
-  } catch (e: any) {
-    erro.value = e.message
-  } finally {
-    carregando.value = false
-  }
-}
-
-async function salvarNome() {
-  erro.value = ''
-  try {
-    await api.patch('/conta', { nome: nomeCasa.value })
-    recado.value = 'Nome salvo.'
-    setTimeout(() => (recado.value = ''), 2500)
-    await carregar()
-  } catch (e: any) { erro.value = e.message }
-}
-
-async function convidar() {
-  erro.value = ''; recado.value = ''
-  if (!novoEmail.value.trim()) return
-  convidando.value = true
-  try {
-    await api.post('/convites', { email: novoEmail.value })
-    recado.value = `Convite enviado para ${novoEmail.value.trim()}.`
-    novoEmail.value = ''
-    await carregar()
-  } catch (e: any) { erro.value = e.message }
-  convidando.value = false
-}
-
 async function cancelarConvite(c: any) {
   if (!confirm(`Cancelar o convite de ${c.email}?`)) return
   try {
@@ -123,7 +75,7 @@ async function cancelarConvite(c: any) {
 }
 
 async function removerMembro(m: any) {
-  if (!confirm(`Remover ${m.nome || m.email} da casa? A conta dessa pessoa será apagada.`)) return
+  if (!confirm(`Remover ${m.nome || m.email} da família? A conta dessa pessoa será apagada.`)) return
   try {
     await api.remove(`/conta/membros/${m.id}`)
     await carregar()
@@ -194,7 +146,7 @@ onMounted(async () => {
             </div>
             <button v-if="podePagar && plano !== 'ativo'" class="btn latao"
                     :disabled="assinando || !dados.sou_dono" @click="assinar">
-              {{ assinando ? 'Abrindo…' : (temAssinatura ? 'Retomar assinatura' : 'Assinar') }}
+              {{ assinando ? 'Abrindo…' : 'Pagar o próximo mês' }}
             </button>
             <button v-else-if="podePagar && plano === 'ativo' && !semPrazo"
                     class="btn claro" :disabled="conferindo" @click="conferirPagamento">
@@ -221,16 +173,14 @@ onMounted(async () => {
         <div v-if="!semPrazo" class="entre pequeno mudo" style="margin-top:14px">
           <span>
             <template v-if="podePagar">
-              Cobrança mensal pelo Mercado Pago. Cancele quando quiser.
+              Pagamento mensal avulso — Pix, boleto ou cartão.
+              Nada é debitado automaticamente.
             </template>
             <template v-else>
               O pagamento ainda não foi configurado neste sistema.
             </template>
           </span>
-          <button v-if="podePagar && temAssinatura && plano === 'ativo' && dados.sou_dono"
-                  class="btn risco mini" @click="cancelarAssinatura">
-            Cancelar assinatura
-          </button>
+
         </div>
       </div>
 
@@ -346,16 +296,36 @@ onMounted(async () => {
         </div>
       </div>
 
+      <div v-if="dados.assinatura?.pagamentos_pendentes"
+           class="aviso entre" style="margin-bottom:16px">
+        <span>
+          Há {{ dados.assinatura.pagamentos_pendentes }} pagamento(s) aguardando.
+          Boleto pode levar até 3 dias; Pix cai em minutos.
+        </span>
+        <button class="btn claro mini" :disabled="conferindo" @click="conferirPagamento">
+          {{ conferindo ? 'Conferindo…' : 'Já paguei' }}
+        </button>
+      </div>
+
       <div v-if="pagamentos.length" class="cartao chapa" style="margin-bottom:16px">
-        <div class="cartao-topo"><h2>Cobranças</h2></div>
+        <div class="cartao-topo">
+          <h2>Pagamentos</h2>
+          <button class="btn claro mini" :disabled="conferindo" @click="conferirPagamento">
+            {{ conferindo ? 'Conferindo…' : 'Conferir' }}
+          </button>
+        </div>
         <div class="tabela-rolagem">
           <table>
             <tbody>
               <tr v-for="pg in pagamentos" :key="pg.id">
                 <td class="num pequeno">{{ dataBr(pg.pago_em ?? pg.criado_em) }}</td>
                 <td class="pequeno">
-                  {{ pg.tipo === 'cobranca' ? 'Mensalidade' : 'Assinatura' }}
-                  <div class="mudo">{{ pg.status }}</div>
+                  Mensalidade
+                  <div class="mudo">
+                    {{ pg.status === 'pago' ? 'confirmado'
+                      : pg.status === 'pendente' ? 'aguardando pagamento' : pg.status }}
+                    <span v-if="pg.valida_ate"> · vale até {{ dataBr(pg.valida_ate) }}</span>
+                  </div>
                 </td>
                 <td class="direita num">{{ pg.valor ? dinheiro(pg.valor) : '—' }}</td>
               </tr>
