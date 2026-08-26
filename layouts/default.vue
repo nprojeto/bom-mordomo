@@ -4,12 +4,13 @@ const supa = useSupa()
 const api = useApi()
 const email = ref('')
 const aviso = ref<{ texto: string; grave: boolean } | null>(null)
+const ehAdmin = ref(false)
 
 // telas de acesso ocupam a pagina inteira, sem menu
 const SEM_MENU = ['/login', '/criar-conta', '/recuperar', '/nova-senha']
 const semMenu = computed(() => SEM_MENU.includes(rota.path))
 
-const itens = [
+const itens = computed(() => [
   { para: '/',            ic: '◈', txt: 'Painel',     curto: 'Painel' },
   { para: '/moderando',   ic: '◐', txt: 'Moderando',  curto: 'Moderar' },
   { para: '/calendario',  ic: '▦', txt: 'Calendário', curto: 'Agenda' },
@@ -18,13 +19,21 @@ const itens = [
   { para: '/cartoes',     ic: '▤', txt: 'Cartões',    curto: 'Cartões' },
   { para: '/reservas',    ic: '◉', txt: 'Reservas',   curto: 'Reservas' },
   { para: '/ajustes',     ic: '⚙', txt: 'Ajustes',    curto: 'Ajustes' },
-  { para: '/conta',       ic: '⌂', txt: 'Minha casa', curto: 'Casa' }
-]
+  { para: '/conta',       ic: '⌂', txt: 'Minha casa', curto: 'Casa' },
+  ...(ehAdmin.value
+    ? [{ para: '/admin', ic: '✦', txt: 'Administração', curto: 'Admin' }]
+    : [])
+])
 
 onMounted(async () => {
   const { data } = await supa.auth.getUser()
   email.value = data.user?.email ?? ''
   if (semMenu.value) return
+  try {
+    const c = await api.get('/conta')
+    ehAdmin.value = !!c?.sou_admin
+  } catch { /* sem admin se falhar */ }
+
   try {
     const a = await api.get('/assinatura')
     if (!a?.em_dia) {

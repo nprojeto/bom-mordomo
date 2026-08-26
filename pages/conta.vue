@@ -9,9 +9,24 @@ const recado = ref('')
 const nomeCasa = ref('')
 const novoEmail = ref('')
 const convidando = ref(false)
+const assinando = ref(false)
+const pagamentos = ref<any[]>([])
+const rota = useRoute()
 
 const plano = computed(() => dados.value?.conta?.plano)
 const dias = computed(() => Number(dados.value?.dias_restantes ?? 0))
+
+// Prazos muito longos nao viram numero de dias — fica ilegivel.
+const semPrazo = computed(() => dias.value > 400)
+
+const prazoTexto = computed(() => {
+  if (!dados.value?.em_dia) return 'expirada'
+  if (semPrazo.value) return 'sem prazo'
+  if (dias.value > 60) return `${Math.round(dias.value / 30)} meses`
+  if (dias.value > 1) return `${dias.value} dias`
+  if (dias.value === 1) return 'último dia'
+  return 'termina hoje'
+})
 
 const rotuloPlano: Record<string, string> = {
   teste: 'Período de teste',
@@ -20,12 +35,49 @@ const rotuloPlano: Record<string, string> = {
   cancelado: 'Assinatura cancelada'
 }
 
+const podePagar = computed(() => dados.value?.assinatura?.pagamento_disponivel)
+const temAssinatura = computed(() => dados.value?.assinatura?.tem_assinatura)
+const preco = computed(() => Number(dados.value?.assinatura?.preco_mensal ?? 0))
+
+async function assinar() {
+  erro.value = ''
+  assinando.value = true
+  try {
+    const r = await api.post('/assinatura/checkout')
+    if (r?.link) { window.location.href = r.link; return }
+    erro.value = 'O Mercado Pago não devolveu o link de pagamento.'
+  } catch (e: any) { erro.value = e.message }
+  assinando.value = false
+}
+
+async function conferirPagamento() {
+  erro.value = ''
+  try {
+    await api.post('/assinatura/sincronizar')
+    recado.value = 'Situação atualizada.'
+    await carregar()
+    setTimeout(() => (recado.value = ''), 3000)
+  } catch (e: any) { erro.value = e.message }
+}
+
+async function cancelarAssinatura() {
+  if (!confirm('Cancelar a assinatura? O acesso continua até o fim do período já pago.')) return
+  erro.value = ''
+  try {
+    await api.post('/assinatura/cancelar')
+    recado.value = 'Assinatura cancelada.'
+    await carregar()
+  } catch (e: any) { erro.value = e.message }
+}
+
 async function carregar() {
   carregando.value = true
   erro.value = ''
   try {
-    dados.value = await api.get('/conta')
-    nomeCasa.value = dados.value?.conta?.nome ?? ''
+    const [c, a] = await Promise.all([api.get('/conta'), api.get('/assinatura')])
+    dados.value = { ...c, assinatura: a }
+    nomeCasa.value = c?.conta?.nome ?? ''
+    try { pagamentos.value = await api.get('/assinatura/pagamentos') ?? [] } catch { /* opcional */ }
   } catch (e: any) {
     erro.value = e.message
   } finally {
@@ -77,14 +129,21 @@ async function sair() {
   await navigateTo('/login')
 }
 
-onMounted(carregar)
+onMounted(async () => {
+  await carregar()
+  // voltou do Mercado Pago: confere a situacao na origem
+  if (rota.query.retorno && dados.value?.assinatura?.tem_assinatura) {
+    recado.value = 'Conferindo seu pagamento…'
+    await conferirPagamento()
+  }
+})
 </script>
 
 <template>
   <div>
     <div class="topo">
       <h1>Minha casa</h1>
-      <p>Quem tem acesso, o nome da casa e sua assinatura.</p>
+      <p>Os mordomos da casa, o nome dela e sua assinatura.</p>
     </div>
 
     <div v-if="recado" class="aviso bem" style="margin-bottom:14px">{{ recado }}</div>
@@ -103,33 +162,58 @@ onMounted(carregar)
           <div>
             <div class="rotulo">{{ rotuloPlano[plano] ?? plano }}</div>
             <div class="selo-valor" :class="dados.em_dia ? 'entrada' : 'saida'">
-              {{ dados.em_dia
-                ? (dias > 0 ? `${dias} dia${dias > 1 ? 's' : ''}` : 'último dia')
-                : 'expirada' }}
+              {{ prazoTexto }}
             </div>
             <div class="pequeno mudo">
               <template v-if="plano === 'teste'">
                 Teste até {{ dataBr(dados.conta.teste_ate) }}
               </template>
-              <template v-else-if="dados.conta.assinatura_ate">
+              <template v-else-if="dados.conta.assinatura_ate && !semPrazo">
                 Válida até {{ dataBr(dados.conta.assinatura_ate) }}
+              </template>
+              <template v-else-if="semPrazo">
+                Acesso liberado, sem data de corte
               </template>
               <template v-else>Sem data de expiração</template>
             </div>
           </div>
-          <button class="btn latao" disabled>Assinar</button>
+          <div class="direita">
+            <div v-if="preco" class="pequeno mudo" style="margin-bottom:6px">
+              {{ dinheiro(preco) }}/mês
+            </div>
+            <button v-if="podePagar && plano !== 'ativo'" class="btn latao"
+                    :disabled="assinando || !dados.sou_dono" @click="assinar">
+              {{ assinando ? 'Abrindo…' : (temAssinatura ? 'Retomar assinatura' : 'Assinar') }}
+            </button>
+            <button v-else-if="podePagar && plano === 'ativo' && !semPrazo"
+                    class="btn claro" @click="conferirPagamento">
+              Atualizar situação
+            </button>
+          </div>
         </div>
 
         <div v-if="!dados.em_dia" class="aviso mal" style="margin-top:14px">
           O acesso expirou. Você ainda consegue consultar tudo, mas não dá
           para lançar nada novo até renovar.
         </div>
-        <div v-else-if="plano === 'teste' && dias <= 5" class="aviso" style="margin-top:14px">
+        <div v-else-if="plano === 'teste' && dias <= 5 && !semPrazo"
+             class="aviso" style="margin-top:14px">
           Seu teste termina em breve.
         </div>
 
-        <div class="pequeno mudo" style="margin-top:12px">
-          O pagamento pelo Mercado Pago entra na próxima atualização.
+        <div v-if="!semPrazo" class="entre pequeno mudo" style="margin-top:14px">
+          <span>
+            <template v-if="podePagar">
+              Cobrança mensal pelo Mercado Pago. Cancele quando quiser.
+            </template>
+            <template v-else>
+              O pagamento ainda não foi configurado neste sistema.
+            </template>
+          </span>
+          <button v-if="podePagar && temAssinatura && plano === 'ativo' && dados.sou_dono"
+                  class="btn risco mini" @click="cancelarAssinatura">
+            Cancelar assinatura
+          </button>
         </div>
       </div>
 
@@ -149,7 +233,7 @@ onMounted(carregar)
       <!-- membros -->
       <div class="cartao chapa" style="margin-bottom:16px">
         <div class="cartao-topo">
-          <h2>Quem tem acesso</h2>
+          <h2>Mordomos da casa</h2>
           <span class="pequeno mudo">{{ dados.membros.length }} pessoa(s)</span>
         </div>
 
@@ -164,7 +248,7 @@ onMounted(carregar)
                   <div class="pequeno mudo">{{ m.email }}</div>
                 </td>
                 <td class="pequeno mudo">
-                  {{ m.papel === 'dono' ? 'Dono da casa' : 'Membro' }}
+                  Mordomo<span v-if="m.papel === 'dono'"> · administra</span>
                 </td>
                 <td class="direita">
                   <button v-if="dados.sou_dono && m.id !== dados.eu"
@@ -178,7 +262,7 @@ onMounted(carregar)
         </div>
 
         <div v-if="dados.sou_dono" style="padding:16px 18px;border-top:1px solid var(--linha)">
-          <label>Convidar alguém para esta casa</label>
+          <label>Chamar outro mordomo para esta casa</label>
           <div class="linha-flex">
             <input v-model="novoEmail" type="email" placeholder="email@dapessoa.com"
                    @keyup.enter="convidar" />
@@ -207,6 +291,24 @@ onMounted(carregar)
                 <td class="direita">
                   <button class="btn risco mini" @click="cancelarConvite(c)">Cancelar</button>
                 </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div v-if="pagamentos.length" class="cartao chapa" style="margin-bottom:16px">
+        <div class="cartao-topo"><h2>Cobranças</h2></div>
+        <div class="tabela-rolagem">
+          <table>
+            <tbody>
+              <tr v-for="pg in pagamentos" :key="pg.id">
+                <td class="num pequeno">{{ dataBr(pg.pago_em ?? pg.criado_em) }}</td>
+                <td class="pequeno">
+                  {{ pg.tipo === 'cobranca' ? 'Mensalidade' : 'Assinatura' }}
+                  <div class="mudo">{{ pg.status }}</div>
+                </td>
+                <td class="direita num">{{ pg.valor ? dinheiro(pg.valor) : '—' }}</td>
               </tr>
             </tbody>
           </table>
