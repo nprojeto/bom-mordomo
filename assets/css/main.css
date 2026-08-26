@@ -130,12 +130,12 @@ a { color: inherit; }
   display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .mes-titulo { font-family: var(--serif); font-size: 1.35rem; text-transform: capitalize; }
 
-.semana { display: grid; grid-template-columns: repeat(8, 1fr);
+.semana { display: grid; grid-template-columns: repeat(9, 1fr);
   border-top: 1px solid var(--linha); background: var(--papel); }
 .semana div { padding: 8px 6px; font-size: .68rem; font-weight: 700;
   letter-spacing: .08em; text-transform: uppercase; color: var(--tinta-45); text-align: center; }
 
-.malha { display: grid; grid-template-columns: repeat(8, 1fr); }
+.malha { display: grid; grid-template-columns: repeat(9, 1fr); }
 .dia { min-height: 108px; border-top: 1px solid var(--linha);
   border-right: 1px solid var(--linha); padding: 6px 7px; background: var(--carta);
   cursor: pointer; transition: background .12s; }
@@ -234,6 +234,17 @@ input:focus, select:focus, textarea:focus {
 .barra-meta { height: 6px; background: #E7EAE4; border-radius: 999px; overflow: hidden; }
 .barra-meta i { display: block; height: 100%; border-radius: 999px; }
 
+/* --------------------------------------------------------- faixa de aviso */
+.faixa-aviso {
+  display: block; text-decoration: none;
+  background: var(--alerta-fraco); color: #7A4E10;
+  border: 1px solid #E9D3AC; border-radius: 8px;
+  padding: 10px 14px; margin-bottom: 18px; font-size: .85rem;
+}
+.faixa-aviso.grave {
+  background: var(--saida-fraco); color: #7A2C22; border-color: #E4C4BE;
+}
+
 /* --------------------------------------------------------- login */
 .portao { min-height: 100vh; display: grid; place-items: center;
   background: var(--tinta); padding: 20px; }
@@ -262,14 +273,14 @@ input:focus, select:focus, textarea:focus {
   .tabela-rolagem table { min-width: 620px; }
 
   .menu-mobile {
-    display: grid; grid-template-columns: repeat(8, 1fr);
+    display: grid; grid-template-columns: repeat(9, 1fr);
     position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
     background: var(--tinta); border-top: 2px solid var(--latao);
     padding: 6px 2px calc(6px + env(safe-area-inset-bottom));
   }
   .menu-mobile a {
     display: grid; place-items: center; gap: 2px; padding: 6px 2px;
-    text-decoration: none; color: #8A9793; font-size: .52rem; font-weight: 600;
+    text-decoration: none; color: #8A9793; font-size: .48rem; font-weight: 600;
     letter-spacing: -.01em; text-align: center; line-height: 1.1;
   }
   .menu-mobile a .ic { font-size: .95rem; }

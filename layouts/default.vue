@@ -1,7 +1,10 @@
 <script setup lang="ts">
 const rota = useRoute()
 const supa = useSupa()
+const api = useApi()
 const email = ref('')
+const casa = ref('')
+const aviso = ref<{ texto: string; grave: boolean } | null>(null)
 
 const nuLogin = computed(() => rota.path === '/login')
 
@@ -13,12 +16,25 @@ const itens = [
   { para: '/gastos',      ic: '◍', txt: 'Gastos',     curto: 'Gastos' },
   { para: '/cartoes',     ic: '▤', txt: 'Cartões',    curto: 'Cartões' },
   { para: '/reservas',    ic: '◉', txt: 'Reservas',   curto: 'Reservas' },
-  { para: '/ajustes',     ic: '⚙', txt: 'Ajustes',    curto: 'Ajustes' }
+  { para: '/ajustes',     ic: '⚙', txt: 'Ajustes',    curto: 'Ajustes' },
+  { para: '/conta',       ic: '⌂', txt: 'Minha casa', curto: 'Casa' }
 ]
 
 onMounted(async () => {
   const { data } = await supa.auth.getUser()
   email.value = data.user?.email ?? ''
+  if (nuLogin.value) return
+  try {
+    const a = await api.get('/assinatura')
+    casa.value = ''
+    if (!a?.em_dia) {
+      aviso.value = { texto: 'Seu acesso expirou — não dá para lançar nada novo.', grave: true }
+    } else if (a?.plano === 'teste' && Number(a.dias_restantes) <= 5) {
+      aviso.value = {
+        texto: `Seu teste termina em ${a.dias_restantes} dia(s).`, grave: false
+      }
+    }
+  } catch { /* sem aviso se a consulta falhar */ }
 })
 
 async function sair() {
@@ -45,7 +61,13 @@ async function sair() {
       </div>
     </aside>
 
-    <main class="palco"><slot /></main>
+    <main class="palco">
+      <NuxtLink v-if="aviso" to="/conta" class="faixa-aviso"
+                :class="{ grave: aviso.grave }">
+        {{ aviso.texto }} <strong>Ver assinatura ›</strong>
+      </NuxtLink>
+      <slot />
+    </main>
 
     <nav class="menu-mobile">
       <NuxtLink v-for="i in itens" :key="i.para" :to="i.para">

@@ -128,6 +128,11 @@ onMounted(carregar)
         </div>
       </div>
 
+      <!-- lancar gasto direto aqui -->
+      <div style="margin-top:16px">
+        <LancarGasto @salvo="carregar" />
+      </div>
+
       <div v-if="semVerba" class="aviso mal" style="margin-top:14px">
         Suas contas fixas deste mês já consomem tudo o que entra. Não sobra verba
         para o dia a dia — vale rever as contas ou as entradas.
@@ -208,7 +213,7 @@ onMounted(carregar)
       <div class="cartao chapa" style="margin-top:14px">
         <div class="cartao-topo">
           <h2>O que você lançou hoje</h2>
-          <NuxtLink to="/gastos" class="btn claro mini">Lançar gasto</NuxtLink>
+          <NuxtLink to="/gastos" class="btn claro mini">Ver histórico</NuxtLink>
         </div>
         <div v-if="!doDia.length" class="vazio">
           <div class="simbolo">☕</div>
