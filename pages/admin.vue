@@ -13,6 +13,18 @@ const semAcesso = ref(false)
 
 const form = ref({ nome: '', preco: '', plan_id: '' })
 
+// aceita 19,90 / 19.90 / R$ 19,90
+function lerDinheiro(v: any): number | null {
+  if (typeof v === 'number') return isFinite(v) && v > 0 ? v : null
+  let t = String(v ?? '').trim().replace(/[R$\s]/gi, '')
+  if (!t) return null
+  if (t.includes(',')) t = t.replace(/\./g, '').replace(',', '.')
+  const n = Number(t)
+  return isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : null
+}
+
+const precoLido = computed(() => lerDinheiro(form.value.preco))
+
 const rotuloPlano: Record<string, string> = {
   teste: 'Em teste', ativo: 'Assinante',
   vencido: 'Vencida', cancelado: 'Cancelada'
@@ -29,7 +41,7 @@ async function carregar() {
     resumo.value = r
     plano.value = p
     form.value.nome = p?.nome ?? ''
-    form.value.preco = String(p?.preco ?? '')
+    form.value.preco = p?.preco ? String(p.preco).replace('.', ',') : ''
     form.value.plan_id = p?.plan_id ?? ''
   } catch (e: any) {
     if (String(e.message).includes('restrita')) semAcesso.value = true
@@ -43,8 +55,9 @@ async function salvarPlano() {
   erro.value = ''; recado.value = ''
   salvando.value = true
   try {
+    if (precoLido.value === null) { erro.value = 'Escreva o preço, algo como 19,90.'; salvando.value = false; return }
     await api.patch('/admin/plano', {
-      nome: form.value.nome, preco: Number(form.value.preco)
+      nome: form.value.nome, preco: precoLido.value
     })
     recado.value = 'Guardado.'
     await carregar()
@@ -55,15 +68,24 @@ async function salvarPlano() {
 
 async function publicar() {
   erro.value = ''; recado.value = ''
-  if (!Number(form.value.preco)) { erro.value = 'Defina o preço mensal.'; return }
+  const preco = precoLido.value
+  if (preco === null) { erro.value = 'Escreva o preço, algo como 19,90.'; return }
+
+  const acao = plano.value?.plan_id ? 'atualizar o plano para' : 'criar o plano cobrando'
+  if (!confirm(`Confirma ${acao} R$ ${preco.toFixed(2).replace('.', ',')} por mês?`)) return
+
   publicando.value = true
   try {
     const r = await api.post('/admin/plano/publicar', {
-      nome: form.value.nome, preco: Number(form.value.preco)
+      nome: form.value.nome, preco
     })
-    recado.value = r.criado
-      ? 'Plano criado no Mercado Pago. O botão Assinar já funciona.'
-      : 'Plano atualizado no Mercado Pago.'
+    if (r.aviso) {
+      erro.value = r.aviso
+    } else {
+      recado.value = r.criado
+        ? `Plano criado cobrando ${dinheiro(r.preco_gravado)} por mês. O botão Assinar já funciona.`
+        : `Plano atualizado para ${dinheiro(r.preco_gravado)} por mês.`
+    }
     await carregar()
   } catch (e: any) { erro.value = e.message }
   publicando.value = false
@@ -196,7 +218,15 @@ onMounted(carregar)
             </div>
             <div class="campo">
               <label>Preço por mês (R$)</label>
-              <input v-model="form.preco" type="number" step="0.01" min="1" />
+              <input v-model="form.preco" inputmode="decimal" placeholder="19,90" />
+              <div class="pequeno mudo" style="margin-top:4px">
+                <template v-if="precoLido !== null">
+                  Vai cobrar <strong class="num">{{ dinheiro(precoLido) }}</strong> por mês
+                </template>
+                <template v-else-if="form.preco">
+                  <span class="saida">Valor não reconhecido.</span>
+                </template>
+              </div>
             </div>
           </div>
 
@@ -265,6 +295,13 @@ onMounted(carregar)
               <tr v-else-if="plano.plano_mercadopago?.erro">
                 <td>Como está lá</td>
                 <td class="direita pequeno saida">{{ plano.plano_mercadopago.erro }}</td>
+              </tr>
+              <tr v-if="plano.plan_id && !plano.webhook_ok">
+                <td colspan="2" style="background:var(--alerta-fraco)">
+                  <strong>Falta um passo:</strong> cadastre o endereço de aviso abaixo
+                  no Mercado Pago. Sem ele, o sistema não fica sabendo quando alguém
+                  paga ou cancela.
+                </td>
               </tr>
               <tr>
                 <td>
