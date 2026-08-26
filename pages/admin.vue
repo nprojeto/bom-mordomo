@@ -1,19 +1,26 @@
 <script setup lang="ts">
 const api = useApi()
 
-const aba = ref<'negocio' | 'plano'>('negocio')
+const aba = ref<'negocio' | 'planos'>('negocio')
 const resumo = ref<any>(null)
-const plano = ref<any>(null)
+const planos = ref<any[]>([])
+const recursos = ref<any[]>([])
+const integracao = ref<any>({})
 const carregando = ref(true)
 const erro = ref('')
 const recado = ref('')
 const salvando = ref(false)
-const publicando = ref(false)
+const publicando = ref('')
 const semAcesso = ref(false)
 
-const form = ref({ nome: '', preco: '', plan_id: '' })
+const editando = ref<any>(null)
+const abertos = ref<Record<string, boolean>>({})
 
-// aceita 19,90 / 19.90 / R$ 19,90
+const rotuloPlano: Record<string, string> = {
+  teste: 'Em teste', ativo: 'Assinante',
+  vencido: 'Vencida', cancelado: 'Cancelada'
+}
+
 function lerDinheiro(v: any): number | null {
   if (typeof v === 'number') return isFinite(v) && v > 0 ? v : null
   let t = String(v ?? '').trim().replace(/[R$\s]/gi, '')
@@ -23,12 +30,12 @@ function lerDinheiro(v: any): number | null {
   return isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : null
 }
 
-const precoLido = computed(() => lerDinheiro(form.value.preco))
+const precoLido = computed(() => lerDinheiro(editando.value?.preco))
 
-const rotuloPlano: Record<string, string> = {
-  teste: 'Em teste', ativo: 'Assinante',
-  vencido: 'Vencida', cancelado: 'Cancelada'
-}
+const liberados = computed(() => {
+  if (!editando.value) return 0
+  return recursos.value.filter((r) => editando.value.recursos[r.chave] !== false).length
+})
 
 async function carregar() {
   carregando.value = true
@@ -36,13 +43,12 @@ async function carregar() {
   try {
     const [r, p] = await Promise.all([
       api.get('/admin/resumo'),
-      api.get('/admin/plano')
+      api.get('/admin/planos')
     ])
     resumo.value = r
-    plano.value = p
-    form.value.nome = p?.nome ?? ''
-    form.value.preco = p?.preco ? String(p.preco).replace('.', ',') : ''
-    form.value.plan_id = p?.plan_id ?? ''
+    planos.value = p?.planos ?? []
+    recursos.value = p?.recursos ?? []
+    integracao.value = p ?? {}
   } catch (e: any) {
     if (String(e.message).includes('restrita')) semAcesso.value = true
     else erro.value = e.message
@@ -51,44 +57,92 @@ async function carregar() {
   }
 }
 
-async function salvarPlano() {
-  erro.value = ''; recado.value = ''
+function novoPlano() {
+  const tudo: Record<string, boolean> = {}
+  for (const r of recursos.value) tudo[r.chave] = true
+  editando.value = {
+    id: null, nome: '', descricao: '', preco: '',
+    dias_teste: 14, max_pessoas: 2, recursos: tudo,
+    publico: true, ativo: true, ordem: planos.value.length + 1
+  }
+  abertos.value.funcoes = true
+}
+
+function editar(p: any) {
+  const r: Record<string, boolean> = {}
+  for (const x of recursos.value) r[x.chave] = p.recursos?.[x.chave] !== false
+  editando.value = {
+    id: p.id, nome: p.nome, descricao: p.descricao ?? '',
+    preco: String(p.preco).replace('.', ','),
+    dias_teste: p.dias_teste, max_pessoas: p.max_pessoas,
+    recursos: r, publico: p.publico, ativo: p.ativo, ordem: p.ordem,
+    mp_plan_id: p.mp_plan_id
+  }
+  abertos.value.funcoes = false
+}
+
+async function salvar() {
+  erro.value = ''
+  if (!editando.value.nome.trim()) { erro.value = 'Dê um nome ao plano.'; return }
+  if (precoLido.value === null && Number(editando.value.preco) !== 0) {
+    erro.value = 'Escreva o preço, algo como 19,90.'; return
+  }
   salvando.value = true
+  const corpo = {
+    nome: editando.value.nome.trim(),
+    descricao: editando.value.descricao || null,
+    preco: precoLido.value ?? 0,
+    dias_teste: Number(editando.value.dias_teste),
+    max_pessoas: Number(editando.value.max_pessoas),
+    recursos: editando.value.recursos,
+    publico: editando.value.publico,
+    ativo: editando.value.ativo,
+    ordem: Number(editando.value.ordem)
+  }
   try {
-    if (precoLido.value === null) { erro.value = 'Escreva o preço, algo como 19,90.'; salvando.value = false; return }
-    await api.patch('/admin/plano', {
-      nome: form.value.nome, preco: precoLido.value
-    })
-    recado.value = 'Guardado.'
+    if (editando.value.id) await api.patch(`/admin/planos/${editando.value.id}`, corpo)
+    else await api.post('/admin/planos', corpo)
+    recado.value = 'Plano guardado.'
+    editando.value = null
     await carregar()
     setTimeout(() => (recado.value = ''), 3000)
   } catch (e: any) { erro.value = e.message }
   salvando.value = false
 }
 
-async function publicar() {
+async function publicar(p: any) {
   erro.value = ''; recado.value = ''
-  const preco = precoLido.value
-  if (preco === null) { erro.value = 'Escreva o preço, algo como 19,90.'; return }
-
-  const acao = plano.value?.plan_id ? 'atualizar o plano para' : 'criar o plano cobrando'
-  if (!confirm(`Confirma ${acao} R$ ${preco.toFixed(2).replace('.', ',')} por mês?`)) return
-
-  publicando.value = true
+  const valor = Number(p.preco)
+  if (!confirm(`Publicar "${p.nome}" cobrando ${dinheiro(valor)} por mês?`)) return
+  publicando.value = p.id
   try {
-    const r = await api.post('/admin/plano/publicar', {
-      nome: form.value.nome, preco
-    })
-    if (r.aviso) {
-      erro.value = r.aviso
-    } else {
-      recado.value = r.criado
-        ? `Plano criado cobrando ${dinheiro(r.preco_gravado)} por mês. O botão Assinar já funciona.`
-        : `Plano atualizado para ${dinheiro(r.preco_gravado)} por mês.`
-    }
+    const r = await api.post(`/admin/planos/publicar/${p.id}`)
+    recado.value = r.aviso
+      ? r.aviso
+      : (r.criado
+        ? `"${p.nome}" publicado. Quem estiver nele já pode assinar.`
+        : `"${p.nome}" atualizado no Mercado Pago.`)
     await carregar()
   } catch (e: any) { erro.value = e.message }
-  publicando.value = false
+  publicando.value = ''
+}
+
+async function apagar(p: any) {
+  if (!confirm(`Apagar o plano "${p.nome}"?`)) return
+  try {
+    await api.remove(`/admin/planos/${p.id}`)
+    await carregar()
+  } catch (e: any) { erro.value = e.message }
+}
+
+async function moverCasa(casa: any, planoId: string) {
+  if (!planoId || planoId === casa.plano_id) return
+  try {
+    await api.post(`/admin/casas/plano/${casa.id}`, { plano_id: planoId })
+    recado.value = 'Plano trocado.'
+    await carregar()
+    setTimeout(() => (recado.value = ''), 3000)
+  } catch (e: any) { erro.value = e.message }
 }
 
 async function estender(casa: any) {
@@ -133,8 +187,8 @@ onMounted(carregar)
       <div class="linha-flex" style="margin-bottom:16px">
         <button class="btn mini" :class="aba === 'negocio' ? '' : 'claro'"
                 @click="aba = 'negocio'">Clientes</button>
-        <button class="btn mini" :class="aba === 'plano' ? '' : 'claro'"
-                @click="aba = 'plano'">Plano e cobrança</button>
+        <button class="btn mini" :class="aba === 'planos' ? '' : 'claro'"
+                @click="aba = 'planos'">Planos</button>
       </div>
 
       <div v-if="carregando" class="vazio">Consultando…</div>
@@ -158,13 +212,12 @@ onMounted(carregar)
           <div class="cartao">
             <div class="rotulo">Recebido no mês</div>
             <div class="selo-valor">{{ dinheiro(resumo.recebido_no_mes) }}</div>
-            <div class="pequeno mudo">cobranças confirmadas</div>
           </div>
         </div>
 
         <div class="cartao chapa">
           <div class="cartao-topo">
-            <h2>Casas cadastradas</h2>
+            <h2>Famílias cadastradas</h2>
             <span class="pequeno mudo">
               {{ resumo.total_casas }} no total · {{ resumo.vencidas }} vencida(s)
             </span>
@@ -172,14 +225,23 @@ onMounted(carregar)
           <div class="tabela-rolagem">
             <table>
               <thead>
-                <tr><th>Casa</th><th>Situação</th><th>Válida até</th>
-                    <th class="direita">Pessoas</th><th></th></tr>
+                <tr><th>Família</th><th>Plano</th><th>Situação</th>
+                    <th>Válida até</th><th class="direita">Pessoas</th><th></th></tr>
               </thead>
               <tbody>
                 <tr v-for="c in resumo.casas" :key="c.id">
                   <td>
                     <strong>{{ c.nome }}</strong>
                     <div class="pequeno mudo">desde {{ dataBr(c.criado_em) }}</div>
+                  </td>
+                  <td style="min-width:150px">
+                    <select :value="c.plano_id ?? ''" style="font-size:.8rem;padding:5px 8px"
+                            @change="moverCasa(c, ($event.target as HTMLSelectElement).value)">
+                      <option value="">— sem plano —</option>
+                      <option v-for="p in planos" :key="p.id" :value="p.id">
+                        {{ p.nome }}
+                      </option>
+                    </select>
                   </td>
                   <td>
                     <span class="eti" :class="c.em_dia
@@ -202,124 +264,221 @@ onMounted(carregar)
         </div>
       </template>
 
-      <!-- ================= PLANO ================= -->
-      <template v-else-if="aba === 'plano' && plano">
-        <div class="cartao" style="margin-bottom:16px">
-          <h2 style="margin-bottom:4px">O que você cobra</h2>
-          <p class="pequeno mudo" style="margin:0 0 16px">
-            Ao publicar, o plano é criado ou atualizado no Mercado Pago e o botão
-            Assinar passa a funcionar para todos os clientes.
-          </p>
-
-          <div class="dupla">
-            <div class="campo">
-              <label>Nome que o cliente vê na cobrança</label>
-              <input v-model="form.nome" placeholder="Bom Mordomo — Mensal" />
-            </div>
-            <div class="campo">
-              <label>Preço por mês (R$)</label>
-              <input v-model="form.preco" inputmode="decimal" placeholder="19,90" />
-              <div class="pequeno mudo" style="margin-top:4px">
-                <template v-if="precoLido !== null">
-                  Vai cobrar <strong class="num">{{ dinheiro(precoLido) }}</strong> por mês
-                </template>
-                <template v-else-if="form.preco">
-                  <span class="saida">Valor não reconhecido.</span>
-                </template>
-              </div>
-            </div>
-          </div>
-
-          <div class="linha-flex">
-            <button class="btn latao" :disabled="publicando" @click="publicar">
-              {{ publicando ? 'Publicando…' : (plano.plan_id ? 'Atualizar no Mercado Pago' : 'Criar plano no Mercado Pago') }}
-            </button>
-            <button class="btn claro" :disabled="salvando" @click="salvarPlano">
-              Só guardar
-            </button>
-          </div>
-        </div>
-
+      <!-- ================= PLANOS ================= -->
+      <template v-else-if="aba === 'planos'">
         <!-- credencial -->
         <div class="cartao" style="margin-bottom:16px">
-          <h2 style="margin-bottom:4px">Credencial do Mercado Pago</h2>
-          <p class="pequeno mudo" style="margin:0 0 14px">
-            Por segurança, a credencial não passa por esta tela nem fica no banco.
-            Ela vive apenas nos segredos do servidor.
-          </p>
-
-          <div v-if="plano.token_configurado && plano.token_producao"
-               class="aviso bem">
-            Credencial de produção configurada no servidor.
-          </div>
-          <div v-else-if="plano.token_configurado" class="aviso">
-            Há uma credencial configurada, mas ela <strong>não é de produção</strong>.
-            Cobranças reais não vão funcionar.
-          </div>
-          <div v-else class="aviso mal">
-            Sem credencial. Enquanto isso, ninguém consegue assinar.
-          </div>
-
-          <details style="margin-top:14px">
-            <summary class="pequeno mudo" style="cursor:pointer">
-              Como trocar a credencial
-            </summary>
-            <div class="pequeno mudo" style="margin-top:10px;line-height:1.7">
-              No Supabase, abra <strong>Edge Functions → Secrets</strong> e edite
-              o segredo <span class="num">MP_ACCESS_TOKEN</span> com o Access Token
-              de produção do painel de desenvolvedores do Mercado Pago.
-              A mudança vale na hora, sem publicar nada.
+          <div class="entre">
+            <div>
+              <div class="rotulo">Credencial do Mercado Pago</div>
+              <div v-if="integracao.token_configurado && integracao.token_producao"
+                   class="entrada" style="font-weight:600;margin-top:4px">
+                Produção configurada no servidor
+              </div>
+              <div v-else-if="integracao.token_configurado" class="saida"
+                   style="font-weight:600;margin-top:4px">
+                A credencial não é de produção — cobranças reais não funcionam
+              </div>
+              <div v-else class="saida" style="font-weight:600;margin-top:4px">
+                Sem credencial — ninguém consegue assinar
+              </div>
+              <div class="pequeno mudo" style="margin-top:4px">
+                Troca-se em Supabase → Edge Functions → Secrets → MP_ACCESS_TOKEN
+              </div>
             </div>
-          </details>
+            <button class="btn claro mini" @click="copiar(integracao.webhook_url)">
+              Copiar aviso de pagamento
+            </button>
+          </div>
         </div>
 
-        <!-- situacao -->
-        <div class="cartao chapa">
-          <div class="cartao-topo"><h2>Situação da integração</h2></div>
-          <table>
-            <tbody>
-              <tr>
-                <td>Plano no Mercado Pago</td>
-                <td class="direita">
-                  <span v-if="plano.plan_id" class="num pequeno">{{ plano.plan_id }}</span>
-                  <span v-else class="eti atrasado">não criado</span>
-                </td>
-              </tr>
-              <tr v-if="plano.plano_mercadopago && !plano.plano_mercadopago.erro">
-                <td>Como está lá</td>
-                <td class="direita pequeno">
-                  {{ plano.plano_mercadopago.status }} ·
-                  <span class="num">{{ dinheiro(plano.plano_mercadopago.auto_recurring?.transaction_amount) }}</span>/mês
-                </td>
-              </tr>
-              <tr v-else-if="plano.plano_mercadopago?.erro">
-                <td>Como está lá</td>
-                <td class="direita pequeno saida">{{ plano.plano_mercadopago.erro }}</td>
-              </tr>
-              <tr v-if="plano.plan_id && !plano.webhook_ok">
-                <td colspan="2" style="background:var(--alerta-fraco)">
-                  <strong>Falta um passo:</strong> cadastre o endereço de aviso abaixo
-                  no Mercado Pago. Sem ele, o sistema não fica sabendo quando alguém
-                  paga ou cancela.
-                </td>
-              </tr>
-              <tr>
-                <td>
-                  Aviso de pagamento
-                  <div class="pequeno mudo">
-                    cadastre este endereço no Mercado Pago, em Webhooks
-                  </div>
-                </td>
-                <td class="direita">
-                  <button class="btn claro mini" @click="copiar(plano.webhook_url)">
-                    Copiar endereço
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="entre" style="margin-bottom:14px">
+          <h2>Planos oferecidos</h2>
+          <button class="btn" @click="novoPlano">＋ Novo plano</button>
+        </div>
+
+        <div v-if="!planos.length" class="cartao vazio">
+          Nenhum plano criado ainda.
+        </div>
+
+        <div v-else class="grade g2">
+          <div v-for="p in planos" :key="p.id" class="cartao"
+               :style="p.ativo ? '' : 'opacity:.55'">
+            <div class="entre">
+              <div>
+                <h3>
+                  {{ p.nome }}
+                  <span v-if="!p.publico" class="eti cancelado">oculto</span>
+                  <span v-if="!p.ativo" class="eti cancelado">desativado</span>
+                </h3>
+                <div class="pequeno mudo">{{ p.descricao || 'Sem descrição' }}</div>
+              </div>
+              <div class="direita">
+                <div class="selo-valor" style="font-size:1.3rem">{{ dinheiro(p.preco) }}</div>
+                <div class="pequeno mudo">por mês</div>
+              </div>
+            </div>
+
+            <div class="grade g3" style="margin-top:14px">
+              <div>
+                <div class="rotulo">Pessoas</div>
+                <div class="num">{{ p.max_pessoas }}</div>
+              </div>
+              <div>
+                <div class="rotulo">Teste grátis</div>
+                <div class="num">{{ p.dias_teste }} dias</div>
+              </div>
+              <div>
+                <div class="rotulo">Assinantes</div>
+                <div class="num">{{ p.assinantes }}</div>
+              </div>
+            </div>
+
+            <div style="margin-top:12px">
+              <div class="rotulo" style="margin-bottom:6px">Inclui</div>
+              <div class="linha-flex" style="flex-wrap:wrap;gap:5px">
+                <span v-for="r in recursos" :key="r.chave" class="eti"
+                      :class="p.recursos?.[r.chave] !== false ? 'pago' : 'cancelado'">
+                  {{ r.nome }}
+                </span>
+              </div>
+            </div>
+
+            <div class="pequeno mudo" style="margin-top:12px">
+              <template v-if="p.mp_plan_id">
+                Publicado no Mercado Pago · <span class="num">{{ p.mp_plan_id.slice(0, 12) }}…</span>
+              </template>
+              <template v-else>
+                <span class="saida">Ainda não publicado — não dá para assinar</span>
+              </template>
+            </div>
+
+            <div class="linha-flex" style="margin-top:14px;flex-wrap:wrap">
+              <button class="btn claro mini" @click="editar(p)">Editar</button>
+              <button class="btn latao mini" :disabled="publicando === p.id || !p.preco"
+                      @click="publicar(p)">
+                {{ publicando === p.id ? 'Publicando…'
+                  : (p.mp_plan_id ? 'Atualizar no MP' : 'Publicar no MP') }}
+              </button>
+              <button v-if="!p.assinantes" class="btn risco mini" @click="apagar(p)">
+                Apagar
+              </button>
+            </div>
+          </div>
         </div>
       </template>
     </template>
+
+    <!-- ================= EDITOR DE PLANO ================= -->
+    <div v-if="editando" class="veu" @click.self="editando = null">
+      <div class="painel" style="max-width:580px">
+        <div class="painel-topo">
+          <h2>{{ editando.id ? 'Editar plano' : 'Novo plano' }}</h2>
+          <button class="fechar" @click="editando = null">×</button>
+        </div>
+
+        <div class="painel-corpo">
+          <div class="campo">
+            <label>Nome do plano</label>
+            <input v-model="editando.nome" placeholder="Família, Essencial, Completo…" />
+          </div>
+
+          <div class="campo">
+            <label>Descrição <span class="mudo">(o cliente vê)</span></label>
+            <input v-model="editando.descricao" placeholder="Todas as funções, para a família toda." />
+          </div>
+
+          <div class="grade g3">
+            <div class="campo">
+              <label>Preço por mês</label>
+              <input v-model="editando.preco" inputmode="decimal" placeholder="19,90" />
+              <div v-if="precoLido !== null" class="pequeno mudo" style="margin-top:4px">
+                {{ dinheiro(precoLido) }}
+              </div>
+            </div>
+            <div class="campo">
+              <label>Pessoas na casa</label>
+              <input v-model="editando.max_pessoas" type="number" min="1" max="50" />
+            </div>
+            <div class="campo">
+              <label>Dias de teste</label>
+              <input v-model="editando.dias_teste" type="number" min="0" max="365" />
+            </div>
+          </div>
+
+          <!-- retrátil: funcionalidades -->
+          <div class="gaveta">
+            <button class="gaveta-topo" @click="abertos.funcoes = !abertos.funcoes">
+              <span>
+                <strong>Funcionalidades liberadas</strong>
+                <span class="pequeno mudo"> — {{ liberados }} de {{ recursos.length }}</span>
+              </span>
+              <span class="seta" :class="{ aberta: abertos.funcoes }">›</span>
+            </button>
+
+            <div v-if="abertos.funcoes" class="gaveta-corpo">
+              <label v-for="r in recursos" :key="r.chave" class="opcao">
+                <input type="checkbox"
+                       :checked="editando.recursos[r.chave] !== false"
+                       @change="editando.recursos[r.chave] = ($event.target as HTMLInputElement).checked" />
+                <span>
+                  <strong>{{ r.nome }}</strong>
+                  <span class="pequeno mudo"> — {{ r.texto }}</span>
+                </span>
+              </label>
+            </div>
+          </div>
+
+          <div class="grade g2" style="margin-top:14px">
+            <label class="opcao">
+              <input v-model="editando.publico" type="checkbox" />
+              <span>Aparece para novos clientes</span>
+            </label>
+            <label class="opcao">
+              <input v-model="editando.ativo" type="checkbox" />
+              <span>Plano ativo</span>
+            </label>
+          </div>
+
+          <div v-if="editando.id && editando.mp_plan_id" class="aviso pequeno"
+               style="margin-top:14px">
+            Mudou o preço? Depois de salvar, clique em <strong>Atualizar no MP</strong>
+            para valer também no Mercado Pago.
+          </div>
+        </div>
+
+        <div class="painel-pe">
+          <button class="btn claro" @click="editando = null">Cancelar</button>
+          <button class="btn" :disabled="salvando" @click="salvar">
+            {{ salvando ? 'Guardando…' : 'Guardar plano' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
+
+<style scoped>
+.gaveta {
+  border: 1px solid var(--linha); border-radius: 8px;
+  overflow: hidden; margin-top: 4px;
+}
+.gaveta-topo {
+  width: 100%; display: flex; align-items: center; justify-content: space-between;
+  background: var(--papel); border: 0; padding: 12px 14px;
+  font: inherit; font-size: .9rem; text-align: left; cursor: pointer;
+}
+.gaveta-topo:hover { background: #E7EBE4; }
+.seta { transition: transform .18s; display: inline-block; font-size: 1.2rem; color: var(--tinta-45); }
+.seta.aberta { transform: rotate(90deg); }
+.gaveta-corpo { padding: 12px 14px; display: grid; gap: 10px; background: var(--carta); }
+
+.opcao {
+  display: flex; align-items: flex-start; gap: 9px;
+  margin: 0; cursor: pointer; font-weight: 400; font-size: .88rem;
+  color: var(--tinta);
+}
+.opcao input { width: auto; margin: 2px 0 0; flex: 0 0 auto; }
+
+@media (prefers-reduced-motion: reduce) { .seta { transition: none; } }
+</style>

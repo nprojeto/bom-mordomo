@@ -143,7 +143,7 @@ onMounted(async () => {
   <div>
     <div class="topo">
       <h1>Minha casa</h1>
-      <p>Os mordomos da casa, o nome dela e sua assinatura.</p>
+      <p>Os mordomos, o nome da família e sua assinatura.</p>
     </div>
 
     <div v-if="recado" class="aviso bem" style="margin-bottom:14px">{{ recado }}</div>
@@ -160,7 +160,12 @@ onMounted(async () => {
            :style="dados.em_dia ? 'border-left:3px solid var(--entrada)' : 'border-left:3px solid var(--saida)'">
         <div class="entre">
           <div>
-            <div class="rotulo">{{ rotuloPlano[plano] ?? plano }}</div>
+            <div class="rotulo">
+              {{ rotuloPlano[plano] ?? plano }}
+              <span v-if="dados.plano?.nome" style="color:var(--latao)">
+                · {{ dados.plano.nome }}
+              </span>
+            </div>
             <div class="selo-valor" :class="dados.em_dia ? 'entrada' : 'saida'">
               {{ prazoTexto }}
             </div>
@@ -219,14 +224,17 @@ onMounted(async () => {
 
       <!-- nome da casa -->
       <div class="cartao" style="margin-bottom:16px">
-        <h2 style="margin-bottom:12px">Nome da casa</h2>
+        <h2 style="margin-bottom:4px">Família</h2>
+        <p class="pequeno mudo" style="margin:0 0 12px">
+          É o nome que aparece no alto do menu.
+        </p>
         <div class="linha-flex">
           <input v-model="nomeCasa" :disabled="!dados.sou_dono"
-                 placeholder="Casa Silva, Nosso lar…" />
+                 placeholder="Família Silva" />
           <button v-if="dados.sou_dono" class="btn claro" @click="salvarNome">Salvar</button>
         </div>
         <div v-if="!dados.sou_dono" class="pequeno mudo" style="margin-top:6px">
-          Só o dono da casa pode alterar.
+          Só um mordomo responsável pode alterar.
         </div>
       </div>
 
@@ -261,7 +269,8 @@ onMounted(async () => {
           </table>
         </div>
 
-        <div v-if="dados.sou_dono" style="padding:16px 18px;border-top:1px solid var(--linha)">
+        <div v-if="dados.sou_dono && (dados.vagas === null || dados.vagas > 0)"
+             style="padding:16px 18px;border-top:1px solid var(--linha)">
           <label>Chamar outro mordomo para esta casa</label>
           <div class="linha-flex">
             <input v-model="novoEmail" type="email" placeholder="email@dapessoa.com"
@@ -275,6 +284,13 @@ onMounted(async () => {
             entra direto aqui — vendo e lançando tudo junto com você.
           </div>
         </div>
+      </div>
+
+      <div v-if="dados.sou_dono && dados.vagas !== null && dados.vagas <= 0"
+           class="aviso" style="margin-bottom:16px">
+        O plano <strong>{{ dados.plano?.nome }}</strong> comporta
+        {{ dados.plano?.max_pessoas }} pessoa(s) e as vagas acabaram.
+        Para chamar mais alguém, mude de plano.
       </div>
 
       <!-- convites pendentes -->

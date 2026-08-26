@@ -90,8 +90,8 @@ async function criar() {
         </div>
 
         <div v-if="!convidado" class="campo">
-          <label>Nome da casa <span class="mudo">(opcional)</span></label>
-          <input v-model="casa" placeholder="Casa Silva, Nosso lar…" />
+          <label>Nome da família <span class="mudo">(opcional)</span></label>
+          <input v-model="casa" placeholder="Família Silva" />
         </div>
 
         <div class="campo">

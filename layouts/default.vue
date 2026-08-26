@@ -5,25 +5,33 @@ const api = useApi()
 const email = ref('')
 const aviso = ref<{ texto: string; grave: boolean } | null>(null)
 const ehAdmin = ref(false)
+const familia = ref('')
+const recursos = ref<Record<string, boolean>>({})
 
 // telas de acesso ocupam a pagina inteira, sem menu
 const SEM_MENU = ['/login', '/criar-conta', '/recuperar', '/nova-senha']
 const semMenu = computed(() => SEM_MENU.includes(rota.path))
 
+function temRecurso(chave?: string) {
+  if (!chave) return true
+  if (!Object.keys(recursos.value).length) return true
+  return recursos.value[chave] !== false
+}
+
 const itens = computed(() => [
   { para: '/',            ic: '◈', txt: 'Painel',     curto: 'Painel' },
-  { para: '/moderando',   ic: '◐', txt: 'Moderando',  curto: 'Moderar' },
-  { para: '/calendario',  ic: '▦', txt: 'Calendário', curto: 'Agenda' },
-  { para: '/contas',      ic: '☰', txt: 'Contas',     curto: 'Contas' },
-  { para: '/gastos',      ic: '◍', txt: 'Gastos',     curto: 'Gastos' },
-  { para: '/cartoes',     ic: '▤', txt: 'Cartões',    curto: 'Cartões' },
-  { para: '/reservas',    ic: '◉', txt: 'Reservas',   curto: 'Reservas' },
+  { para: '/moderando',   ic: '◐', txt: 'Moderando',  curto: 'Moderar', rec: 'moderando' },
+  { para: '/calendario',  ic: '▦', txt: 'Calendário', curto: 'Agenda',  rec: 'calendario' },
+  { para: '/contas',      ic: '☰', txt: 'Contas',     curto: 'Contas',  rec: 'contas' },
+  { para: '/gastos',      ic: '◍', txt: 'Gastos',     curto: 'Gastos',  rec: 'gastos' },
+  { para: '/cartoes',     ic: '▤', txt: 'Cartões',    curto: 'Cartões', rec: 'cartoes' },
+  { para: '/reservas',    ic: '◉', txt: 'Reservas',   curto: 'Reservas',rec: 'reservas' },
   { para: '/ajustes',     ic: '⚙', txt: 'Ajustes',    curto: 'Ajustes' },
   { para: '/conta',       ic: '⌂', txt: 'Minha casa', curto: 'Casa' },
   ...(ehAdmin.value
     ? [{ para: '/admin', ic: '✦', txt: 'Administração', curto: 'Admin' }]
     : [])
-])
+].filter((i: any) => temRecurso(i.rec)))
 
 onMounted(async () => {
   const { data } = await supa.auth.getUser()
@@ -32,7 +40,9 @@ onMounted(async () => {
   try {
     const c = await api.get('/conta')
     ehAdmin.value = !!c?.sou_admin
-  } catch { /* sem admin se falhar */ }
+    familia.value = c?.conta?.nome ?? ''
+    recursos.value = c?.plano?.recursos ?? {}
+  } catch { /* menu completo se a consulta falhar */ }
 
   try {
     const a = await api.get('/assinatura')
@@ -57,7 +67,7 @@ async function sair() {
 
   <div v-else class="moldura">
     <aside class="barra">
-      <div class="marca">Bom Mordomo<span>Livro-razão da casa</span></div>
+      <div class="marca">Bom Mordomo<span>{{ familia || 'Livro-razão' }}</span></div>
       <div class="regua-latao"></div>
       <nav class="menu">
         <NuxtLink v-for="i in itens" :key="i.para" :to="i.para">
