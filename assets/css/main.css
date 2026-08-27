@@ -456,25 +456,78 @@ input:disabled, select:disabled { background: var(--papel); color: var(--tinta-4
   .larga { grid-column: 1 / -1; }
 
   .menu-mobile {
-    display: grid; grid-template-columns: repeat(10, 1fr);
+    display: grid; grid-template-columns: repeat(5, 1fr); align-items: end;
     position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
     background: var(--carta); border-top: 1px solid var(--linha);
-    padding: 7px 2px calc(7px + env(safe-area-inset-bottom));
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
     box-shadow: 0 -4px 20px -8px rgba(22,32,46,.18);
   }
-  .menu-mobile a {
-    display: grid; place-items: center; gap: 3px; padding: 5px 2px;
-    text-decoration: none; color: var(--tinta-45); font-size: .48rem;
-    font-weight: 600; letter-spacing: -.01em; text-align: center; line-height: 1.1;
+  .menu-mobile a, .menu-mobile .mais {
+    display: grid; place-items: center; gap: 2px; padding: 5px 2px;
+    text-decoration: none; color: var(--tinta-45); font-size: .56rem;
+    font-weight: 600; background: none; border: 0; cursor: pointer;
+    font-family: inherit;
   }
-  .menu-mobile a .ic {
-    width: 26px; height: 26px; border-radius: 8px; background: transparent;
+  .menu-mobile .ic {
+    width: 30px; height: 30px; border-radius: 9px;
     display: grid; place-items: center;
   }
-  .menu-mobile a .ic .mi { font-size: 19px; vertical-align: 0; }
-  .menu-mobile a.router-link-active .ic { background: var(--azul-suave); }
+  .menu-mobile .ic .mi { font-size: 21px; vertical-align: 0; }
   .menu-mobile a.router-link-active { color: var(--azul); }
-  .menu-mobile a.travado { opacity: .38; }
+  .menu-mobile a.router-link-active .ic { background: var(--azul-suave); }
+  .menu-mobile a.travado { opacity: .42; }
+  .menu-mobile .mais.aberto { color: var(--azul); }
+
+  /* o de lançar gasto é o mais usado: fica maior e em destaque */
+  .menu-mobile a.destaque { color: var(--azul); position: relative; }
+  .menu-mobile a.destaque .ic {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: var(--azul); color: #fff; margin-top: -22px;
+    box-shadow: 0 6px 16px -4px rgba(10,78,145,.5);
+    border: 3px solid var(--carta);
+  }
+  .menu-mobile a.destaque .ic .mi { font-size: 26px; }
+  .menu-mobile a.destaque .txt { margin-top: -2px; font-weight: 700; }
+  .menu-mobile a.destaque.router-link-active .ic { background: var(--azul-forte); }
+
+  /* gaveta com o resto das telas */
+  .gaveta-fundo {
+    position: fixed; inset: 0; z-index: 55;
+    background: rgba(22,32,46,.45); display: flex; align-items: flex-end;
+  }
+  .gaveta-menu {
+    width: 100%; background: var(--carta);
+    border-radius: 20px 20px 0 0; padding: 10px 14px;
+    padding-bottom: calc(78px + env(safe-area-inset-bottom));
+    box-shadow: 0 -10px 40px -10px rgba(22,32,46,.35);
+  }
+  .gaveta-alca {
+    width: 38px; height: 4px; border-radius: 999px; background: var(--linha);
+    margin: 2px auto 14px;
+  }
+  .gaveta-grade { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .gaveta-grade a {
+    display: grid; place-items: center; gap: 6px; padding: 14px 6px;
+    text-decoration: none; color: var(--tinta); font-size: .72rem;
+    font-weight: 600; text-align: center; border-radius: 12px;
+    background: var(--papel); position: relative;
+  }
+  .gaveta-grade a .ic {
+    width: 38px; height: 38px; border-radius: 11px;
+    background: var(--azul-suave); color: var(--azul);
+    display: grid; place-items: center;
+  }
+  .gaveta-grade a .ic .mi { font-size: 20px; vertical-align: 0; }
+  .gaveta-grade a.router-link-active { background: var(--azul-suave); color: var(--azul); }
+  .gaveta-grade a.travado { opacity: .55; }
+  .gaveta-grade a .trava {
+    position: absolute; top: 7px; right: 8px; font-size: 13px; color: var(--tinta-45);
+  }
+  .gaveta-pe {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px; margin-top: 14px; padding-top: 12px;
+    border-top: 1px solid var(--linha);
+  }
 
   .balao {
     left: 12px !important; right: 12px; width: auto;

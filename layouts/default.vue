@@ -10,6 +10,23 @@ const familia = ref('')
 const recursos = ref<Record<string, boolean>>({})
 const catalogo = ref<any[]>([])
 const balao = ref<any>(null)
+const gaveta = ref(false)
+
+// No celular cabem poucos: os quatro do dia a dia mais o "Mais".
+const ATALHOS = ['/', '/calendario', '/gastos', '/moderando']
+
+const principais = computed(() =>
+  ATALHOS.map((r) => itens.value.find((i: any) => i.para === r)).filter(Boolean) as any[])
+
+const outros = computed(() =>
+  itens.value.filter((i: any) => !ATALHOS.includes(i.para)))
+
+function tocarMobile(i: any, ev: MouseEvent) {
+  if (!i.bloqueado) { gaveta.value = false; return }
+  ev.preventDefault()
+  gaveta.value = false
+  explicar(i, ev)
+}
 
 function explicar(item: any, ev: MouseEvent) {
   const alvo = (ev.currentTarget as HTMLElement).getBoundingClientRect()
@@ -133,12 +150,39 @@ async function sair() {
     </main>
 
     <nav class="menu-mobile">
-      <NuxtLink v-for="i in itens" :key="i.para" :to="i.para"
-                :class="{ travado: i.bloqueado }"
-                @click="i.bloqueado && ($event.preventDefault(), explicar(i, $event))">
-        <span class="ic"><i class="mi">{{ i.ic }}</i></span>{{ i.curto }}
+      <NuxtLink v-for="i in principais" :key="i.para" :to="i.para"
+                :class="{ travado: i.bloqueado, destaque: i.para === '/gastos' }"
+                @click="tocarMobile(i, $event)">
+        <span class="ic"><i class="mi">{{ i.ic }}</i></span>
+        <span class="txt">{{ i.curto }}</span>
       </NuxtLink>
+
+      <button class="mais" :class="{ aberto: gaveta }" @click="gaveta = !gaveta">
+        <span class="ic"><i class="mi">{{ gaveta ? 'close' : 'more_horiz' }}</i></span>
+        <span class="txt">Mais</span>
+      </button>
     </nav>
+
+    <!-- demais telas -->
+    <div v-if="gaveta" class="gaveta-fundo" @click="gaveta = false">
+      <div class="gaveta-menu" @click.stop>
+        <div class="gaveta-alca"></div>
+        <div class="gaveta-grade">
+          <NuxtLink v-for="i in outros" :key="i.para" :to="i.para"
+                    :class="{ travado: i.bloqueado }"
+                    @click="tocarMobile(i, $event)">
+            <span class="ic"><i class="mi">{{ i.ic }}</i></span>
+            <span>{{ i.txt }}</span>
+            <i v-if="i.bloqueado" class="mi trava">lock</i>
+          </NuxtLink>
+        </div>
+        <div class="gaveta-pe">
+          <span class="pequeno mudo">{{ email }}</span>
+          <button class="btn claro mini" @click="sair">Sair</button>
+        </div>
+      </div>
+    </div>
+
     <!-- explicacao do que esta travado -->
     <div v-if="balao" class="balao-fundo" @click="fecharBalao">
       <div class="balao" :style="{ top: balao.topo + 'px', left: balao.esquerda + 'px' }"
