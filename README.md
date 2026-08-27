@@ -1,29 +1,34 @@
-# Bom Mordomo
+# Sow Well Everyday
 
-Controle financeiro da casa. Frontend em Nuxt 3, publicado no GitHub Pages.
+Controle financeiro da família. Frontend em Nuxt 3, publicado no GitHub Pages.
 Backend no Supabase (Postgres + Edge Function `api`).
 
 ## Publicar
 
-1. Envie estes arquivos para o repositório `bom-mordomo` na branch `main`.
+1. Envie estes arquivos para o repositório `sowwell` na branch `main`.
 2. No GitHub: **Settings → Pages → Source: GitHub Actions**.
 3. A cada envio, o site é gerado e publicado automaticamente.
 
-Endereço final: `https://nprojeto.github.io/bom-mordomo/`
+Endereço: `https://nprojeto.github.io/sowwell/`
 
-## Onde ficam as configurações
+## Se mudar o nome do repositório
 
-- `nuxt.config.ts` → endereço do Supabase, chave pública e `baseURL`.
-- Se o repositório mudar de nome, altere `app.baseURL` para `/novo-nome/`.
+Altere `app.baseURL` no `nuxt.config.ts` para `/novo-nome/` e o segredo
+`SITE_URL` no Supabase. Os caminhos de imagem se ajustam sozinhos.
 
 ## Páginas
 
 | Rota | O que faz |
 |---|---|
 | `/login` | Entrada com e-mail e senha |
+| `/criar-conta` | Cadastro com código por e-mail |
 | `/` | Painel do mês |
+| `/moderando` | Limite diário e lançamento de gastos |
 | `/calendario` | Visão mensal de contas e entradas |
-| `/contas` | Cadastro de fixas, parceladas e entradas |
-| `/transacoes` | Gastos importados do banco |
+| `/contas` | Fixas, parceladas, entradas, cartões e vales |
+| `/gastos` | Histórico de gastos |
+| `/cartoes` | Cartões de crédito e vales-benefício |
 | `/reservas` | Investimentos e fundo de reserva |
-| `/ajustes` | E-mail diário, categorias, sair |
+| `/planos` | Planos e contratação |
+| `/conta` | Família, mordomos e assinatura |
+| `/admin` | Painel do administrador da plataforma |
