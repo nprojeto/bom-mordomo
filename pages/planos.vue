@@ -159,9 +159,14 @@ onMounted(carregar)
 
           <ul class="lista-recursos">
             <li v-for="r in dados.recursos" :key="r.chave"
-                :class="{ fora: !inclui(p, r.chave) }">
+                :class="{ fora: !inclui(p, r.chave) }" :title="r.detalhe">
               <span class="marca">{{ inclui(p, r.chave) ? '✓' : '·' }}</span>
-              {{ r.nome }}
+              <span>
+                {{ r.nome }}
+                <span class="mudo pequeno" style="display:block;line-height:1.3">
+                  {{ r.texto }}
+                </span>
+              </span>
             </li>
           </ul>
 
@@ -204,7 +209,7 @@ onMounted(carregar)
 .plano.resolve { border-color: var(--latao); border-width: 2px; }
 
 .preco {
-  font-family: var(--mono); font-size: 1.7rem; font-weight: 500;
+  font-variant-numeric: tabular-nums; font-size: 1.7rem; font-weight: 500;
   letter-spacing: -.03em; margin-top: 10px;
 }
 .preco .mudo { font-size: .8rem; font-family: var(--sans); }

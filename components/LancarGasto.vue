@@ -10,8 +10,11 @@ const salvando = ref(false)
 const erro = ref('')
 const recado = ref('')
 const suportaVoz = ref(true)
+const motivoSemVoz = ref('')
+const ultimoParcial = ref('')
 
 const cartoes = ref<any[]>([])
+const temVoz = ref(true)
 const categorias = ref<any[]>([])
 const form = ref<any>(null)
 const seletorCartao = ref<HTMLSelectElement | null>(null)
@@ -50,13 +53,33 @@ const valorDaParcela = computed(() => {
 })
 
 /* ---------------------------------------------------------- voz */
+// Mensagem clara para cada motivo de falha — silêncio aqui vira
+// "não funciona" sem que ninguém saiba o porquê.
+const MOTIVOS: Record<string, string> = {
+  'not-allowed': 'O microfone está bloqueado. Clique no cadeado ao lado do endereço e libere o microfone para este site.',
+  'service-not-allowed': 'O navegador recusou o serviço de voz. Verifique as permissões do site.',
+  'audio-capture': 'Não achei nenhum microfone. Confira se está conectado e escolhido nas configurações do sistema.',
+  'no-speech': 'Não ouvi nada. Fale mais perto do microfone e tente de novo.',
+  'network': 'A conversão de voz precisa de internet e ela falhou agora. Tente de novo ou escreva no campo abaixo.',
+  'aborted': 'A escuta foi interrompida.',
+  'language-not-supported': 'Este navegador não reconhece português falado. Use o campo de texto.'
+}
+
 onMounted(async () => {
   const SR = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition
-  if (!SR) { suportaVoz.value = false } else {
+
+  if (!window.isSecureContext) {
+    suportaVoz.value = false
+    motivoSemVoz.value = 'O microfone só funciona em endereço seguro (https).'
+  } else if (!SR) {
+    suportaVoz.value = false
+    motivoSemVoz.value = 'Este navegador não converte voz em texto. Funciona no Chrome, Edge e Safari — no Firefox, não.'
+  } else {
     reconhecedor = new SR()
     reconhecedor.lang = 'pt-BR'
     reconhecedor.continuous = false
     reconhecedor.interimResults = true
+
     reconhecedor.onresult = (ev: any) => {
       let final = '', temp = ''
       for (let i = ev.resultIndex; i < ev.results.length; i++) {
@@ -64,15 +87,29 @@ onMounted(async () => {
         if (ev.results[i].isFinal) final += t; else temp += t
       }
       parcial.value = temp
-      if (final) { texto.value = final.trim(); parcial.value = ''; interpretar() }
+      if (temp) ultimoParcial.value = temp
+      if (final) {
+        texto.value = final.trim()
+        parcial.value = ''; ultimoParcial.value = ''
+        interpretar()
+      }
     }
+
     reconhecedor.onerror = (e: any) => {
       ouvindo.value = false
-      erro.value = e.error === 'not-allowed'
-        ? 'O microfone está bloqueado. Libere o acesso nas permissões do navegador.'
-        : 'Não consegui ouvir. Tente de novo.'
+      erro.value = MOTIVOS[e?.error] ?? `Não consegui ouvir (${e?.error ?? 'motivo desconhecido'}). Tente de novo.`
     }
-    reconhecedor.onend = () => { ouvindo.value = false }
+
+    // Às vezes a escuta termina sem marcar o texto como final.
+    // Em vez de perder o que foi dito, aproveitamos o parcial.
+    reconhecedor.onend = () => {
+      ouvindo.value = false
+      if (!texto.value && ultimoParcial.value) {
+        texto.value = ultimoParcial.value.trim()
+        ultimoParcial.value = ''; parcial.value = ''
+        interpretar()
+      }
+    }
   }
   await carregarApoio()
 })
@@ -82,14 +119,37 @@ async function carregarApoio() {
     const [f, k] = await Promise.all([api.get('/faturas'), api.get('/categorias')])
     cartoes.value = f?.cartoes ?? []
     categorias.value = (k ?? []).filter((c: any) => c.tipo === 'despesa')
+
+    const r = await useRecursos()
+    temVoz.value = !r || !Object.keys(r).length || r.voz !== false
   } catch { /* silencioso: o formulario ainda funciona sem as listas */ }
 }
 
-function ouvir() {
+async function ouvir() {
   if (!reconhecedor) return
-  erro.value = ''; recado.value = ''; form.value = null; texto.value = ''; parcial.value = ''
+  erro.value = ''; recado.value = ''; form.value = null
+  texto.value = ''; parcial.value = ''; ultimoParcial.value = ''
+
+  // pede o microfone antes: o erro fica bem mais claro assim
+  try {
+    if (navigator.mediaDevices?.getUserMedia) {
+      const fluxo = await navigator.mediaDevices.getUserMedia({ audio: true })
+      fluxo.getTracks().forEach((t) => t.stop())
+    }
+  } catch {
+    erro.value = MOTIVOS['not-allowed']
+    return
+  }
+
   ouvindo.value = true
-  try { reconhecedor.start() } catch { ouvindo.value = false }
+  try {
+    reconhecedor.start()
+  } catch {
+    // já estava escutando: reinicia
+    try { reconhecedor.stop() } catch { /* ignora */ }
+    ouvindo.value = false
+    erro.value = 'A escuta já estava aberta. Toque de novo.'
+  }
 }
 function parar() { reconhecedor?.stop(); ouvindo.value = false }
 
@@ -185,17 +245,25 @@ defineExpose({ editar, novoManual, carregarApoio })
   <div>
     <!-- microfone -->
     <div class="cartao centro" style="padding:24px 20px;margin-bottom:14px">
-      <button class="botao-voz" :class="{ ativo: ouvindo }" :disabled="!suportaVoz"
-              @click="ouvindo ? parar() : ouvir()">
+      <button v-if="temVoz" class="botao-voz" :class="{ ativo: ouvindo }"
+              :disabled="!suportaVoz" @click="ouvindo ? parar() : ouvir()">
         <span>{{ ouvindo ? '■' : '●' }}</span>
       </button>
+      <NuxtLink v-else to="/planos?bloqueado=voz" class="botao-voz travado">
+        <span>🔒</span>
+      </NuxtLink>
 
       <div style="margin-top:12px;min-height:22px">
-        <div v-if="ouvindo" class="mudo">Estou ouvindo…</div>
-        <div v-else-if="!suportaVoz" class="mudo pequeno">
-          Este navegador não converte voz em texto. Use o campo abaixo.
+        <div v-if="!temVoz" class="pequeno mudo" style="max-width:420px;margin:0 auto">
+          Lançar por voz não faz parte do seu plano.
+          <NuxtLink to="/planos?bloqueado=voz"><strong>Ver planos</strong></NuxtLink>
+          — ou escreva no campo abaixo.
         </div>
-        <div v-else class="mudo pequeno">Toque para falar seu gasto</div>
+        <div v-else-if="ouvindo" class="mudo">Estou ouvindo…</div>
+        <div v-else-if="!suportaVoz" class="pequeno mudo" style="max-width:420px;margin:0 auto">
+          {{ motivoSemVoz }} Use o campo abaixo — funciona igual.
+        </div>
+        <div v-else-if="temVoz" class="mudo pequeno">Toque para falar seu gasto</div>
         <div v-if="parcial" class="mudo" style="font-style:italic">{{ parcial }}</div>
       </div>
 
@@ -358,19 +426,25 @@ defineExpose({ editar, novoManual, carregarApoio })
 
 .botao-voz {
   width: 88px; height: 88px; border-radius: 50%;
-  border: 2px solid var(--tinta); background: var(--tinta); color: #fff;
+  border: 2px solid var(--azul); background: var(--azul); color: #fff;
   font-size: 1.5rem; cursor: pointer; transition: .2s;
-  box-shadow: 0 8px 24px -10px rgba(22,33,31,.6);
+  box-shadow: 0 8px 24px -10px rgba(11,114,206,.35);
 }
-.botao-voz:hover { background: var(--verde); }
+.botao-voz:hover { background: var(--azul-forte); }
 .botao-voz:disabled { opacity: .4; cursor: not-allowed; }
+.botao-voz.travado {
+  background: var(--papel); border-color: var(--linha); color: var(--tinta-45);
+  display: inline-grid; place-items: center; text-decoration: none;
+  box-shadow: none; font-size: 1.6rem;
+}
+.botao-voz.travado:hover { background: var(--linha); }
 .botao-voz.ativo {
   background: var(--saida); border-color: var(--saida);
   animation: pulso 1.4s ease-in-out infinite;
 }
 @keyframes pulso {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(163,63,50,.45); }
-  50%      { box-shadow: 0 0 0 16px rgba(163,63,50,0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(224,71,76,.45); }
+  50%      { box-shadow: 0 0 0 16px rgba(224,71,76,0); }
 }
 @media (prefers-reduced-motion: reduce) { .botao-voz.ativo { animation: none; } }
 </style>

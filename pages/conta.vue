@@ -39,6 +39,44 @@ const podePagar = computed(() => dados.value?.assinatura?.pagamento_disponivel)
 const temAssinatura = computed(() => dados.value?.assinatura?.tem_assinatura)
 const preco = computed(() => Number(dados.value?.assinatura?.preco_mensal ?? 0))
 
+async function carregar() {
+  carregando.value = true
+  erro.value = ''
+  try {
+    const [c, a] = await Promise.all([api.get('/conta'), api.get('/assinatura')])
+    dados.value = { ...c, assinatura: a }
+    nomeCasa.value = c?.conta?.nome ?? ''
+    try { pagamentos.value = await api.get('/assinatura/pagamentos') ?? [] } catch { /* opcional */ }
+  } catch (e: any) {
+    erro.value = e.message
+  } finally {
+    carregando.value = false
+  }
+}
+
+async function salvarNome() {
+  erro.value = ''
+  try {
+    await api.patch('/conta', { nome: nomeCasa.value })
+    recado.value = 'Nome salvo.'
+    setTimeout(() => (recado.value = ''), 2500)
+    await carregar()
+  } catch (e: any) { erro.value = e.message }
+}
+
+async function convidar() {
+  erro.value = ''; recado.value = ''
+  if (!novoEmail.value.trim()) return
+  convidando.value = true
+  try {
+    await api.post('/convites', { email: novoEmail.value })
+    recado.value = `Convite enviado para ${novoEmail.value.trim()}.`
+    novoEmail.value = ''
+    await carregar()
+  } catch (e: any) { erro.value = e.message }
+  convidando.value = false
+}
+
 async function assinar() {
   erro.value = ''
   assinando.value = true

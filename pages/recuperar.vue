@@ -168,7 +168,7 @@ async function reenviar() {
 <style scoped>
 .botao-texto {
   background: none; border: 0; padding: 0; font: inherit;
-  color: var(--verde); text-decoration: underline; cursor: pointer;
+  color: var(--azul-forte); text-decoration: underline; cursor: pointer;
 }
 .botao-texto.mudo { color: var(--tinta-45); }
 </style>

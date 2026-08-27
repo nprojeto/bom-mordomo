@@ -16,8 +16,9 @@ function explicar(item: any, ev: MouseEvent) {
   balao.value = {
     rec: item.rec,
     nome: r?.nome ?? item.txt,
-    texto: r?.texto ?? 'Esta parte do sistema.',
-    topo: Math.min(alvo.top, window.innerHeight - 200),
+    texto: r?.detalhe ?? r?.texto ?? 'Esta parte do sistema.',
+    exemplos: r?.exemplos ?? [],
+    topo: Math.min(alvo.top, Math.max(20, window.innerHeight - 340)),
     esquerda: alvo.right + 10
   }
 }
@@ -132,8 +133,15 @@ async function sair() {
           <span class="balao-cadeado">🔒</span>
           <strong>{{ balao.nome }}</strong>
         </div>
+
         <p>{{ balao.texto }}</p>
+
+        <ul v-if="balao.exemplos.length" class="balao-lista">
+          <li v-for="(e, i) in balao.exemplos" :key="i">{{ e }}</li>
+        </ul>
+
         <p class="balao-nota">Não faz parte do seu plano atual.</p>
+
         <div class="linha-flex">
           <button class="btn latao mini" @click="verPlanos">Ver planos</button>
           <button class="btn claro mini" @click="fecharBalao">Agora não</button>

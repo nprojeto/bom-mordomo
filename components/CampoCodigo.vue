@@ -76,7 +76,7 @@ defineExpose({ focar: () => caixas.value[0]?.focus() })
 .codigo { display: flex; gap: 8px; justify-content: center; }
 .codigo input {
   width: 46px; height: 56px; padding: 0; text-align: center;
-  font-family: var(--mono); font-size: 1.5rem; font-weight: 600;
+  font-variant-numeric: tabular-nums; font-size: 1.5rem; font-weight: 600;
   border: 1px solid var(--linha); border-radius: 10px;
   background: var(--carta); color: var(--tinta);
 }

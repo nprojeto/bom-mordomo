@@ -290,9 +290,9 @@ onMounted(carregar)
 .painel-limite { border-left: 3px solid var(--latao); }
 
 .limite-grande {
-  font-family: var(--mono); font-size: 2.6rem; font-weight: 500;
+  font-variant-numeric: tabular-nums; font-size: 2.6rem; font-weight: 500;
   font-variant-numeric: tabular-nums; letter-spacing: -.04em;
-  line-height: 1.1; color: var(--verde);
+  line-height: 1.1; color: var(--azul-forte);
 }
 .limite-grande.saida { color: var(--saida); }
 
@@ -310,20 +310,20 @@ onMounted(carregar)
 .regua:focus { outline: none; }
 .regua::-webkit-slider-runnable-track {
   height: 6px; border-radius: 999px;
-  background: linear-gradient(90deg, var(--verde), var(--latao));
+  background: linear-gradient(90deg, var(--azul-forte), var(--latao));
 }
 .regua::-moz-range-track {
   height: 6px; border-radius: 999px;
-  background: linear-gradient(90deg, var(--verde), var(--latao));
+  background: linear-gradient(90deg, var(--azul-forte), var(--latao));
 }
 .regua::-webkit-slider-thumb {
   appearance: none; width: 24px; height: 24px; margin-top: -9px;
   border-radius: 50%; background: var(--carta);
-  border: 3px solid var(--tinta); box-shadow: 0 2px 6px rgba(22,33,31,.3);
+  border: 3px solid var(--azul); box-shadow: 0 2px 6px rgba(11,114,206,.25);
 }
 .regua::-moz-range-thumb {
   width: 24px; height: 24px; border-radius: 50%; background: var(--carta);
-  border: 3px solid var(--tinta); box-shadow: 0 2px 6px rgba(22,33,31,.3);
+  border: 3px solid var(--azul); box-shadow: 0 2px 6px rgba(11,114,206,.25);
 }
 
 .resultado-simulacao {

@@ -26,7 +26,7 @@ const forcaSenha = computed(() => {
   if (/\d/.test(s)) n++
   if (/[^A-Za-z0-9]/.test(s)) n++
   const rot = ['muito fraca', 'fraca', 'razoável', 'boa', 'forte', 'forte']
-  const cores = ['#A33F32', '#A33F32', '#B5761F', '#2E7A5C', '#2E7A5C', '#2E7A5C']
+  const cores = ['#E0474C', '#E0474C', '#C77800', '#12A150', '#12A150', '#12A150']
   return { n, txt: rot[n], cor: cores[n] }
 })
 
@@ -201,13 +201,13 @@ async function reenviar() {
 <style scoped>
 .forca { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
 .forca-barra {
-  flex: 1; height: 4px; background: #E7EAE4; border-radius: 999px; overflow: hidden;
+  flex: 1; height: 4px; background: #E9EEF5; border-radius: 999px; overflow: hidden;
 }
 .forca-barra i { display: block; height: 100%; transition: width .2s; }
 
 .botao-texto {
   background: none; border: 0; padding: 0; font: inherit;
-  color: var(--verde); text-decoration: underline; cursor: pointer;
+  color: var(--azul-forte); text-decoration: underline; cursor: pointer;
 }
 .botao-texto.mudo { color: var(--tinta-45); }
 </style>

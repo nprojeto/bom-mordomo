@@ -10,7 +10,7 @@ const detalhe = ref<any>(null)
 
 const vazio = () => ({
   id: null as string | null, nome: '', ultimos4: '',
-  dia_fechamento: 25, dia_vencimento: 5, limite: '', cor: '#A33F32',
+  dia_fechamento: 25, dia_vencimento: 5, limite: '', cor: '#0B72CE',
   padrao: false, observacao: ''
 })
 const form = ref(vazio())
