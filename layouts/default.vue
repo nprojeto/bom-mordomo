@@ -120,11 +120,8 @@ async function sair() {
   <div v-else class="moldura">
     <aside class="barra">
       <div class="marca">
-        <img :src="arquivo('logo.png')" alt="" class="marca-logo" />
-        <div>
-          <div class="marca-nome">Sow<em>Well</em></div>
-          <span>{{ familia || 'Everyday' }}</span>
-        </div>
+        <img :src="arquivo('logo.png')" alt="Sow Well Everyday" class="marca-logo" />
+        <span class="marca-familia">{{ familia || 'Everyday' }}</span>
       </div>
       <div class="regua-latao"></div>
       <nav class="menu">
