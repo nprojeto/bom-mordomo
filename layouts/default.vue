@@ -6,6 +6,7 @@ const email = ref('')
 const aviso = ref<{ texto: string; grave: boolean } | null>(null)
 const ehAdmin = ref(false)
 const servidorVelho = ref('')
+const { escuroAgora, alternar } = useTema()
 const familia = ref('')
 const recursos = ref<Record<string, boolean>>({})
 const catalogo = ref<any[]>([])
@@ -133,7 +134,11 @@ async function sair() {
         </NuxtLink>
       </nav>
       <div class="rodape-barra">
-        <div style="margin-bottom:6px">{{ email }}</div>
+        <button class="troca-tema" @click="alternar">
+          <i class="mi">{{ escuroAgora ? 'light_mode' : 'dark_mode' }}</i>
+          {{ escuroAgora ? 'Tema claro' : 'Tema escuro' }}
+        </button>
+        <div style="margin:10px 0 6px">{{ email }}</div>
         <button @click="sair">Sair</button>
       </div>
     </aside>
@@ -180,7 +185,11 @@ async function sair() {
           </NuxtLink>
         </div>
         <div class="gaveta-pe">
-          <span class="pequeno mudo">{{ email }}</span>
+          <button class="btn claro mini" @click="alternar">
+            <i class="mi">{{ escuroAgora ? 'light_mode' : 'dark_mode' }}</i>
+            {{ escuroAgora ? 'Claro' : 'Escuro' }}
+          </button>
+          <span class="pequeno mudo espaco" style="text-align:center">{{ email }}</span>
           <button class="btn claro mini" @click="sair">Sair</button>
         </div>
       </div>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const { escuroAgora, alternar } = useTema()
 const supa = useSupa()
 const email = ref('')
 const senha = ref('')
@@ -28,6 +29,11 @@ async function entrar() {
 
 <template>
   <div class="portao">
+    <button class="tema-flutuante" :title="escuroAgora ? 'Tema claro' : 'Tema escuro'"
+            @click="alternar">
+      <i class="mi">{{ escuroAgora ? 'light_mode' : 'dark_mode' }}</i>
+    </button>
+
     <div class="portao-caixa">
       <img :src="arquivo('logo.png')" alt="Sow Well Everyday" class="portao-logo" />
       <div class="portao-marca">Sow<em>Well</em></div>

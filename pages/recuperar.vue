@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const { escuroAgora, alternar } = useTema()
 const supa = useSupa()
 
 const etapa = ref<'email' | 'codigo' | 'senha'>('email')
@@ -84,6 +85,11 @@ async function reenviar() {
 
 <template>
   <div class="portao">
+    <button class="tema-flutuante" :title="escuroAgora ? 'Tema claro' : 'Tema escuro'"
+            @click="alternar">
+      <i class="mi">{{ escuroAgora ? 'light_mode' : 'dark_mode' }}</i>
+    </button>
+
     <div class="portao-caixa">
       <!-- ---------------- nova senha ---------------- -->
       <template v-if="etapa === 'senha'">

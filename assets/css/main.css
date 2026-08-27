@@ -6,23 +6,32 @@
 
 :root {
   /* --- azul da marca --- */
-  /* tirados da própria logo */
-  --azul:        #0072B5;   /* azul do porquinho, um tom abaixo para contraste */
-  --azul-forte:  #005A91;
-  --azul-suave:  #E4F0F9;
-  --azul-borda:  #B9D8EC;
-  --verde-marca: #00614F;   /* verde profundo da marca */
-  --creme:       #E7CFA3;   /* fundo da logo */
-  --laranja:     #F59100;   /* laranja da logo */
-  --laranja-suave: #FFF1DC;
+  /* laranja da logo */
+  --laranja:      #FF8A00;
+  --laranja-forte:#D97400;
+  --laranja-fundo:#FFF3E4;
+  --laranja-borda:#FFD9AE;
 
-  /* --- texto e superfícies --- */
-  --tinta:    #16202E;
-  --tinta-70: #47536A;
-  --tinta-45: #7A879C;
-  --papel:    #F3F6FA;
+  /* o nome "azul" ficou por compatibilidade: hoje é o laranja da marca */
+  --azul:        var(--laranja);
+  --azul-forte:  var(--laranja-forte);
+  --azul-suave:  var(--laranja-fundo);
+  --azul-borda:  var(--laranja-borda);
+  --latao:       var(--laranja);
+  --latao-fraco: var(--laranja-fundo);
+  --verde:       var(--laranja-forte);
+
+  /* --- texto e superfícies (tema claro) --- */
+  --tinta:    #1B1D21;
+  --tinta-70: #4C5158;
+  --tinta-45: #858B94;
+  --papel:    #F5F6F8;
   --carta:    #FFFFFF;
-  --linha:    #E4EAF2;
+  --linha:    #E6E8EC;
+
+  /* barra lateral: escura nos dois temas, para a logo aparecer */
+  --barra-fundo: linear-gradient(168deg, #23262C 0%, #16181C 100%);
+  --barra-texto: rgba(255,255,255,.82);
 
   /* --- sinais --- */
   --entrada:       #12A150;
@@ -31,11 +40,6 @@
   --saida-fraco:   #FDEAEA;
   --alerta:        #C77800;
   --alerta-fraco:  #FFF4E0;
-
-  /* compatibilidade: o latão virou o azul da marca */
-  --latao:       var(--azul);
-  --latao-fraco: var(--azul-suave);
-  --verde:       var(--azul-forte);
 
   --raio:   14px;
   --raio-g: 20px;
@@ -56,6 +60,45 @@
   font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
   font-size: 1.15em; vertical-align: -.18em; user-select: none;
 }
+
+/* ------------------------------------------------------------ tema escuro */
+[data-tema="escuro"] {
+  --tinta:    #ECEDEF;
+  --tinta-70: #A9AEB6;
+  --tinta-45: #7C838D;
+  --papel:    #101216;
+  --carta:    #191C21;
+  --linha:    #2A2E36;
+
+  --laranja-fundo: #3A2408;
+  --laranja-borda: #5C3B0E;
+
+  --entrada-fraco: #102A1C;
+  --saida-fraco:   #331618;
+  --alerta-fraco:  #322208;
+
+  --sombra: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px -8px rgba(0,0,0,.5);
+  --sombra-alta: 0 20px 48px -16px rgba(0,0,0,.7);
+  --barra-fundo: linear-gradient(168deg, #191C21 0%, #101216 100%);
+}
+[data-tema="escuro"] th { background: #14171B; }
+[data-tema="escuro"] tbody tr:hover { background: #1E2228; }
+[data-tema="escuro"] .painel-pe { background: #14171B; }
+[data-tema="escuro"] .dia.fora { background: #14171B; }
+[data-tema="escuro"] .fechar { background: #24282F; }
+[data-tema="escuro"] .fechar:hover { background: #2E333B; }
+[data-tema="escuro"] .barra-meta { background: #2A2E36; }
+[data-tema="escuro"] .menu a.router-link-active { background: #24282F; color: #fff; }
+[data-tema="escuro"] .gaveta-grade a { background: #24282F; }
+[data-tema="escuro"] .pilula.p { background: #24282F; }
+[data-tema="escuro"] .menu-mobile { background: var(--carta); }
+[data-tema="escuro"] .portao-caixa { background: var(--carta); }
+[data-tema="escuro"] .eti.pendente, [data-tema="escuro"] .eti.cancelado {
+  background: #24282F; color: var(--tinta-70);
+}
+
+html { color-scheme: light; }
+[data-tema="escuro"] { color-scheme: dark; }
 
 * { box-sizing: border-box; }
 html, body, #__nuxt { height: 100%; }
@@ -101,15 +144,12 @@ a { color: inherit; }
 
 .barra {
   width: 244px; flex: 0 0 244px;
-  background: linear-gradient(168deg, #00806E 0%, #004F41 100%);
+  background: var(--barra-fundo);
   color: #fff; padding: 24px 16px; position: sticky; top: 0; height: 100vh;
   display: flex; flex-direction: column;
 }
 .marca { display: grid; place-items: center; gap: 10px; text-align: center; }
-.marca-logo {
-  width: 118px; height: 118px; border-radius: 50%;
-  box-shadow: 0 4px 16px rgba(0,0,0,.22);
-}
+.marca-logo { width: 150px; height: auto; }
 .marca-familia {
   font-family: var(--titulo); font-size: .82rem; font-weight: 700;
   letter-spacing: .12em; text-transform: uppercase;
@@ -126,7 +166,7 @@ a { color: inherit; }
 }
 .menu a:hover { background: rgba(255,255,255,.12); color: #fff; }
 .menu a.router-link-active {
-  background: #fff; color: #00614F; font-weight: 700;
+  background: #fff; color: #1B1D21; font-weight: 700;
   box-shadow: 0 4px 12px -4px rgba(0,0,0,.2);
 }
 .menu .ic {
@@ -135,7 +175,7 @@ a { color: inherit; }
   background: rgba(255,255,255,.14);
 }
 .menu .ic .mi { font-size: 17px; vertical-align: 0; }
-.menu a.router-link-active .ic { background: var(--laranja-suave); color: var(--laranja); }
+.menu a.router-link-active .ic { background: #FFF3E4; color: var(--laranja); }
 
 .menu a.travado { color: rgba(255,255,255,.45); }
 .menu a.travado .ic { background: rgba(255,255,255,.08); }
@@ -143,6 +183,24 @@ a { color: inherit; }
 .menu a.travado .cadeado { margin-left: auto; font-size: 15px; opacity: .75; }
 
 .rodape-barra { margin-top: auto; font-size: .76rem; color: rgba(255,255,255,.65); }
+.troca-tema {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  background: rgba(255,255,255,.1); border: 0; border-radius: 10px;
+  padding: 9px 12px; color: rgba(255,255,255,.9); font: inherit;
+  font-size: .8rem; font-weight: 600; cursor: pointer; transition: .15s;
+}
+.troca-tema:hover { background: rgba(255,255,255,.18); }
+.troca-tema .mi { font-size: 17px; vertical-align: 0; }
+
+.tema-flutuante {
+  position: fixed; top: 16px; right: 16px; z-index: 5;
+  width: 42px; height: 42px; border-radius: 50%;
+  background: rgba(255,255,255,.2); border: 0; color: #fff;
+  display: grid; place-items: center; cursor: pointer; transition: .15s;
+}
+.tema-flutuante:hover { background: rgba(255,255,255,.32); }
+.tema-flutuante .mi { font-size: 20px; vertical-align: 0; }
+
 .rodape-barra button {
   background: none; border: 0; color: #fff; cursor: pointer;
   padding: 0; font: inherit; text-decoration: underline; opacity: .85;
@@ -335,12 +393,11 @@ input:disabled, select:disabled { background: var(--papel); color: var(--tinta-4
 /* --------------------------------------------------------- login */
 .portao {
   min-height: 100vh; display: grid; place-items: center;
-  background: linear-gradient(150deg, #00806E 0%, #00463A 100%);
+  background: linear-gradient(155deg, #FF9C1F 0%, #E87200 100%);
   padding: 20px;
 }
 .portao-logo {
-  width: 128px; height: 128px; display: block; margin: -8px auto 12px;
-  border-radius: 50%; box-shadow: 0 8px 22px -8px rgba(0,0,0,.3);
+  width: 180px; height: auto; display: block; margin: -6px auto 16px;
 }
 .portao-caixa {
   width: 100%; max-width: 400px; background: var(--carta);

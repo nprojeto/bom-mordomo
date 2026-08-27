@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const { escuroAgora, alternar } = useTema()
 const supa = useSupa()
 const senha = ref('')
 const senha2 = ref('')
@@ -30,6 +31,11 @@ async function salvar() {
 
 <template>
   <div class="portao">
+    <button class="tema-flutuante" :title="escuroAgora ? 'Tema claro' : 'Tema escuro'"
+            @click="alternar">
+      <i class="mi">{{ escuroAgora ? 'light_mode' : 'dark_mode' }}</i>
+    </button>
+
     <div class="portao-caixa">
       <div v-if="verificando" class="centro mudo">Conferindo o link…</div>
 
