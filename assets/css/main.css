@@ -6,10 +6,13 @@
 
 :root {
   /* --- azul da marca --- */
-  --azul:        #0A4E91;
-  --azul-forte:  #073A6D;
-  --azul-suave:  #E7EFF8;
-  --azul-borda:  #BCD3EA;
+  /* tirados da própria logo */
+  --azul:        #0072B5;   /* azul do porquinho, um tom abaixo para contraste */
+  --azul-forte:  #005A91;
+  --azul-suave:  #E4F0F9;
+  --azul-borda:  #B9D8EC;
+  --verde-marca: #008474;   /* borda da logo */
+  --creme:       #E7CFA3;   /* fundo da logo */
 
   /* --- texto e superfícies --- */
   --tinta:    #16202E;
@@ -96,18 +99,24 @@ a { color: inherit; }
 
 .barra {
   width: 244px; flex: 0 0 244px;
-  background: linear-gradient(168deg, var(--azul) 0%, var(--azul-forte) 100%);
+  background: linear-gradient(168deg, var(--verde-marca) 0%, #00614F 100%);
   color: #fff; padding: 24px 16px; position: sticky; top: 0; height: 100vh;
   display: flex; flex-direction: column;
 }
-.marca {
-  font-family: var(--titulo); font-size: 1.3rem; font-weight: 800;
-  color: #fff; line-height: 1.1; letter-spacing: -.02em;
+.marca { display: flex; align-items: center; gap: 11px; }
+.marca-logo {
+  width: 42px; height: 42px; flex: 0 0 42px; border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0,0,0,.2);
 }
+.marca-nome {
+  font-family: var(--titulo); font-size: 1.16rem; font-weight: 800;
+  color: #fff; line-height: 1.05; letter-spacing: -.02em;
+}
+.marca-nome em { font-style: normal; font-weight: 700; opacity: .92; }
 .marca span {
-  display: block; font-size: .66rem; font-weight: 600;
-  letter-spacing: .16em; text-transform: uppercase;
-  color: rgba(255,255,255,.7); margin-top: 6px;
+  display: block; font-size: .6rem; font-weight: 600;
+  letter-spacing: .18em; text-transform: uppercase;
+  color: rgba(255,255,255,.72); margin-top: 3px;
 }
 .regua-latao { height: 1px; background: rgba(255,255,255,.22); margin: 20px 0; }
 
@@ -120,7 +129,7 @@ a { color: inherit; }
 }
 .menu a:hover { background: rgba(255,255,255,.12); color: #fff; }
 .menu a.router-link-active {
-  background: #fff; color: var(--azul-forte); font-weight: 700;
+  background: #fff; color: var(--verde-marca); font-weight: 700;
   box-shadow: 0 4px 12px -4px rgba(0,0,0,.2);
 }
 .menu .ic {
@@ -129,7 +138,7 @@ a { color: inherit; }
   background: rgba(255,255,255,.14);
 }
 .menu .ic .mi { font-size: 17px; vertical-align: 0; }
-.menu a.router-link-active .ic { background: var(--azul-suave); color: var(--azul); }
+.menu a.router-link-active .ic { background: #E0F2EE; color: var(--verde-marca); }
 
 .menu a.travado { color: rgba(255,255,255,.45); }
 .menu a.travado .ic { background: rgba(255,255,255,.08); }
@@ -329,8 +338,12 @@ input:disabled, select:disabled { background: var(--papel); color: var(--tinta-4
 /* --------------------------------------------------------- login */
 .portao {
   min-height: 100vh; display: grid; place-items: center;
-  background: linear-gradient(150deg, var(--azul) 0%, var(--azul-forte) 100%);
+  background: linear-gradient(150deg, var(--verde-marca) 0%, #00554A 100%);
   padding: 20px;
+}
+.portao-logo {
+  width: 92px; height: 92px; display: block; margin: 0 auto 14px;
+  border-radius: 50%; box-shadow: 0 6px 18px -6px rgba(0,0,0,.35);
 }
 .portao-caixa {
   width: 100%; max-width: 400px; background: var(--carta);
@@ -338,12 +351,14 @@ input:disabled, select:disabled { background: var(--papel); color: var(--tinta-4
   box-shadow: 0 30px 70px -20px rgba(0,0,0,.45);
 }
 .portao-marca {
-  font-family: var(--titulo); font-size: 1.8rem; font-weight: 800;
-  text-align: center; letter-spacing: -.03em;
+  font-family: var(--titulo); font-size: 1.7rem; font-weight: 800;
+  text-align: center; letter-spacing: -.03em; color: var(--azul);
 }
+.portao-marca em { font-style: normal; font-weight: 700; }
 .portao-sub {
-  text-align: center; color: var(--tinta-45); font-size: .86rem;
-  margin: 8px 0 26px; line-height: 1.5;
+  text-align: center; color: var(--tinta-45); font-size: .78rem;
+  margin: 4px 0 24px; line-height: 1.5;
+  letter-spacing: .16em; text-transform: uppercase; font-weight: 600;
 }
 
 /* --------------------------------------------------------- balão do menu */

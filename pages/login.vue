@@ -29,8 +29,9 @@ async function entrar() {
 <template>
   <div class="portao">
     <div class="portao-caixa">
-      <div class="portao-marca">Bom Mordomo</div>
-      <div class="portao-sub">O livro-razão da casa</div>
+      <img :src="arquivo('logo.png')" alt="Sow Well Everyday" class="portao-logo" />
+      <div class="portao-marca">Sow<em>Well</em></div>
+      <div class="portao-sub">Everyday</div>
 
       <div class="campo">
         <label>E-mail</label>

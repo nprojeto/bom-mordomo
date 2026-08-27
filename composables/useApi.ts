@@ -101,6 +101,13 @@ export function limparRecursos() {
   recursosDoPlano.value = null
 }
 
+/* ---------------------------------------------------------- arquivos */
+// O site vive numa subpasta no GitHub Pages, então os caminhos das
+// imagens precisam sair daqui e não escritos à mão.
+export function arquivo(nome: string) {
+  return `${useRuntimeConfig().app.baseURL}${nome}`.replace(/\/{2,}/g, '/')
+}
+
 /* ------------------------------------------------------------ formato */
 export const dinheiro = (v: any) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })

@@ -119,7 +119,13 @@ async function sair() {
 
   <div v-else class="moldura">
     <aside class="barra">
-      <div class="marca">Bom Mordomo<span>{{ familia || 'Livro-razão' }}</span></div>
+      <div class="marca">
+        <img :src="arquivo('logo.png')" alt="" class="marca-logo" />
+        <div>
+          <div class="marca-nome">Sow<em>Well</em></div>
+          <span>{{ familia || 'Everyday' }}</span>
+        </div>
+      </div>
       <div class="regua-latao"></div>
       <nav class="menu">
         <NuxtLink v-for="i in itens" :key="i.para" :to="i.para"

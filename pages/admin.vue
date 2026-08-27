@@ -166,7 +166,7 @@ onMounted(carregar)
   <div>
     <div class="topo">
       <h1>Administração</h1>
-      <p>O negócio por trás do Bom Mordomo.</p>
+      <p>O negócio por trás do Sow Well.</p>
     </div>
 
     <div v-if="semAcesso" class="cartao vazio">
