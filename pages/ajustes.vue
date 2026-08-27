@@ -1,6 +1,5 @@
 <script setup lang="ts">
 const api = useApi()
-const supa = useSupa()
 
 const config = ref<any[]>([])
 const categorias = ref<any[]>([])
@@ -82,11 +81,6 @@ async function salvarCategoria() {
   } catch (e: any) { erro.value = e.message }
 }
 
-async function sair() {
-  await supa.auth.signOut()
-  await navigateTo('/login')
-}
-
 onMounted(carregar)
 </script>
 
@@ -165,10 +159,7 @@ onMounted(carregar)
         </div>
       </div>
 
-      <div class="cartao">
-        <h2 style="margin-bottom:10px">Acesso</h2>
-        <button class="btn claro" @click="sair">Sair da conta</button>
-      </div>
+
     </template>
 
     <!-- editar categoria -->

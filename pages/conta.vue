@@ -1,6 +1,5 @@
 <script setup lang="ts">
 const api = useApi()
-const supa = useSupa()
 
 const dados = ref<any>(null)
 const carregando = ref(true)
@@ -118,11 +117,6 @@ async function removerMembro(m: any) {
     await api.remove(`/conta/membros/${m.id}`)
     await carregar()
   } catch (e: any) { erro.value = e.message }
-}
-
-async function sair() {
-  await supa.auth.signOut()
-  await navigateTo('/login')
 }
 
 onMounted(async () => {
@@ -372,10 +366,7 @@ onMounted(async () => {
         </div>
       </div>
 
-      <div class="cartao">
-        <h2 style="margin-bottom:10px">Sessão</h2>
-        <button class="btn claro" @click="sair">Sair da conta</button>
-      </div>
+
     </template>
   </div>
 </template>
