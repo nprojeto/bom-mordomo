@@ -112,7 +112,7 @@ onMounted(carregar)
                     :disabled="assinando === dados.plano_atual.id
                       || !dados.pagamento_disponivel"
                     @click="assinar({ ...dados.plano_atual, id: dados.plano_atual.id })">
-              {{ assinando === dados.plano_atual.id ? 'Abrindo…' : 'Pagar agora' }}
+              {{ assinando === dados.plano_atual.id ? 'Abrindo…' : 'Contratar agora' }}
             </button>
           </div>
         </div>
@@ -173,14 +173,14 @@ onMounted(carregar)
           <button v-if="!p.atual" class="btn latao" style="width:100%;margin-top:16px"
                   :disabled="assinando === p.id || !p.disponivel || !dados.pagamento_disponivel"
                   @click="assinar(p)">
-            {{ assinando === p.id ? 'Abrindo…' : 'Pagar este' }}
+            {{ assinando === p.id ? 'Abrindo…' : 'Contratar' }}
           </button>
           <button v-else-if="emTeste || !dados.em_dia"
                   class="btn latao" style="width:100%;margin-top:16px"
                   :disabled="assinando === p.id || !p.disponivel || !dados.pagamento_disponivel"
                   @click="assinar(p)">
             {{ assinando === p.id ? 'Abrindo…'
-              : (emTeste ? 'Pagar agora' : 'Renovar') }}
+              : (emTeste ? 'Contratar agora' : 'Renovar') }}
           </button>
           <div v-else class="pequeno mudo centro" style="margin-top:16px">
             É o que você usa hoje

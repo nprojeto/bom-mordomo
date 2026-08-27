@@ -63,8 +63,8 @@ onMounted(carregar)
         <p>Como está a casa em {{ rotuloMes }}.</p>
       </div>
       <div class="linha-flex">
-        <button class="btn claro mini" @click="mudarMes(-1)">‹</button>
-        <button class="btn claro mini" @click="mudarMes(1)">›</button>
+        <button class="btn claro mini" @click="mudarMes(-1)"><i class="mi">chevron_left</i></button>
+        <button class="btn claro mini" @click="mudarMes(1)"><i class="mi">chevron_right</i></button>
       </div>
     </div>
 
@@ -230,7 +230,7 @@ onMounted(carregar)
           <NuxtLink to="/calendario" class="btn claro mini">Ver calendário</NuxtLink>
         </div>
         <div v-if="!proximas.length" class="vazio">
-          <div class="simbolo">✓</div>
+          <div class="simbolo"><i class="mi">check</i></div>
           Nada vencendo nas próximas duas semanas.
         </div>
         <div v-else class="tabela-rolagem">

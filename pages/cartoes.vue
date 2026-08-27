@@ -18,6 +18,9 @@ const form = ref(vazio())
 const totalAberto = computed(() =>
   cartoes.value.reduce((s, c) => s + Number(c.total_aberta || 0), 0))
 
+const totalFechado = computed(() =>
+  cartoes.value.reduce((s, c) => s + Number(c.total_fechada || 0), 0))
+
 async function carregar() {
   carregando.value = true
   erro.value = ''
@@ -116,7 +119,7 @@ onMounted(carregar)
         <h1>Cartões</h1>
         <p>Cada cartão junta os gastos até fechar a fatura.</p>
       </div>
-      <button class="btn" @click="novo()">＋ Novo cartão</button>
+      <button class="btn" @click="novo()"><i class="mi">add</i>Novo cartão</button>
     </div>
 
     <div v-if="erro && !abrindo" class="aviso mal entre" style="margin-bottom:16px">
@@ -124,9 +127,17 @@ onMounted(carregar)
       <button class="btn claro mini" @click="carregar">Tentar de novo</button>
     </div>
 
-    <div v-if="cartoes.length" class="cartao" style="margin-bottom:16px">
-      <div class="rotulo">Somando nas faturas abertas</div>
-      <div class="selo-valor saida">{{ dinheiro(totalAberto) }}</div>
+    <div v-if="cartoes.length" class="grade g2 larga" style="margin-bottom:16px">
+      <div class="cartao">
+        <div class="rotulo">A pagar nas faturas fechadas</div>
+        <div class="selo-valor saida">{{ dinheiro(totalFechado) }}</div>
+        <div class="pequeno mudo">já viraram, aguardando pagamento</div>
+      </div>
+      <div class="cartao">
+        <div class="rotulo">Acumulando nas abertas</div>
+        <div class="selo-valor">{{ dinheiro(totalAberto) }}</div>
+        <div class="pequeno mudo">ainda dá para mudar de ideia</div>
+      </div>
     </div>
 
     <div v-if="carregando" class="vazio">Consultando…</div>
@@ -136,7 +147,7 @@ onMounted(carregar)
     </div>
 
     <div v-else-if="!cartoes.length" class="cartao vazio">
-      <div class="simbolo">▤</div>
+      <div class="simbolo"><i class="mi">credit_card</i></div>
       Nenhum cartão cadastrado. Cadastre um para lançar gastos no crédito.
     </div>
 
@@ -156,11 +167,29 @@ onMounted(carregar)
           </div>
         </div>
 
-        <div class="rotulo" style="margin-top:14px">Fatura aberta</div>
-        <div class="selo-valor saida">{{ dinheiro(c.total_aberta) }}</div>
-        <div class="pequeno mudo">
-          {{ c.itens_aberta }} lançamento(s)<span v-if="c.vencimento_aberta">
-            · vence em {{ dataBr(c.vencimento_aberta) }}</span>
+        <!-- fatura que já virou e espera pagamento -->
+        <div v-if="c.tem_fechada" class="fatura fechada">
+          <div class="entre">
+            <span class="rotulo" style="color:#A32B30">Fatura fechada</span>
+            <span class="eti atrasado">a pagar</span>
+          </div>
+          <div class="selo-valor saida">{{ dinheiro(c.total_fechada) }}</div>
+          <div class="pequeno mudo">
+            {{ c.itens_fechada }} lançamento(s) · vence em
+            {{ dataBr(c.vencimento_fechada) }}
+          </div>
+        </div>
+
+        <!-- fatura que ainda acumula -->
+        <div class="fatura" :style="c.tem_fechada ? 'margin-top:10px' : 'margin-top:14px'">
+          <div class="rotulo">Fatura aberta</div>
+          <div class="selo-valor" :class="c.tem_fechada ? 'mudo' : 'saida'">
+            {{ dinheiro(c.total_aberta) }}
+          </div>
+          <div class="pequeno mudo">
+            {{ c.itens_aberta }} lançamento(s) · vira em {{ dataBr(c.fecha_em) }}
+            <span v-if="c.vencimento_aberta">· vence {{ dataBr(c.vencimento_aberta) }}</span>
+          </div>
         </div>
 
         <div v-if="c.limite" style="margin-top:10px">
@@ -189,7 +218,7 @@ onMounted(carregar)
       <div class="painel">
         <div class="painel-topo">
           <h2>{{ detalhe.nome }} <span class="mudo num">••{{ detalhe.ultimos4 }}</span></h2>
-          <button class="fechar" @click="detalhe = null">×</button>
+          <button class="fechar" @click="detalhe = null"><i class="mi">close</i></button>
         </div>
         <div class="painel-corpo" style="padding:0">
           <div v-if="!faturasDo(detalhe.id).length" class="vazio">
@@ -223,7 +252,7 @@ onMounted(carregar)
       <div class="painel" style="max-width:470px">
         <div class="painel-topo">
           <h2>{{ form.id ? 'Editar cartão' : 'Novo cartão' }}</h2>
-          <button class="fechar" @click="abrindo = false">×</button>
+          <button class="fechar" @click="abrindo = false"><i class="mi">close</i></button>
         </div>
         <div class="painel-corpo">
           <div class="dupla">
@@ -288,3 +317,10 @@ onMounted(carregar)
     </div>
   </div>
 </template>
+
+<style scoped>
+.fatura.fechada {
+  background: var(--saida-fraco); border: 1px solid #F3C9CB;
+  border-radius: 11px; padding: 11px 13px; margin-top: 14px;
+}
+</style>

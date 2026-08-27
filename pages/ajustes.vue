@@ -176,7 +176,7 @@ onMounted(carregar)
       <div class="painel" style="max-width:420px">
         <div class="painel-topo">
           <h2>Editar categoria</h2>
-          <button class="fechar" @click="editandoCat = null">×</button>
+          <button class="fechar" @click="editandoCat = null"><i class="mi">close</i></button>
         </div>
         <div class="painel-corpo">
           <div class="campo">

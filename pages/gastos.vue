@@ -99,7 +99,7 @@ onMounted(carregar)
 
       <div v-if="carregando" class="vazio">Consultando…</div>
       <div v-else-if="!itens.length" class="vazio">
-        <div class="simbolo">◍</div>
+        <div class="simbolo"><i class="mi">shopping_bag</i></div>
         Nada registrado no período.
       </div>
       <div v-else class="tabela-rolagem">
@@ -140,7 +140,7 @@ onMounted(carregar)
               </td>
               <td class="direita" style="white-space:nowrap">
                 <button class="btn claro mini" @click="editar(g)">Editar</button>
-                <button class="btn risco mini" style="margin-left:4px" @click="apagar(g)">×</button>
+                <button class="btn risco mini" style="margin-left:4px" @click="apagar(g)"><i class="mi">close</i></button>
               </td>
             </tr>
           </tbody>

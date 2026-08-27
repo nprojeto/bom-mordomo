@@ -137,9 +137,9 @@ onMounted(carregar)
     <div class="folha">
       <div class="folha-cabeca">
         <div class="linha-flex">
-          <button class="btn claro mini" @click="mudarMes(-1)">‹</button>
+          <button class="btn claro mini" @click="mudarMes(-1)"><i class="mi">chevron_left</i></button>
           <div class="mes-titulo">{{ rotuloMes }}</div>
-          <button class="btn claro mini" @click="mudarMes(1)">›</button>
+          <button class="btn claro mini" @click="mudarMes(1)"><i class="mi">chevron_right</i></button>
         </div>
         <div class="linha-flex pequeno num" style="gap:16px">
           <span class="entrada">+ {{ dinheiro(totais.receita) }}</span>
@@ -179,7 +179,7 @@ onMounted(carregar)
       <div class="painel">
         <div class="painel-topo">
           <h2>{{ dataBr(diaAberto) }}</h2>
-          <button class="fechar" @click="diaAberto = null">×</button>
+          <button class="fechar" @click="diaAberto = null"><i class="mi">close</i></button>
         </div>
         <div class="painel-corpo pilha">
           <div v-for="e in eventosDoDia" :key="e.id"
@@ -222,7 +222,7 @@ onMounted(carregar)
       <div class="painel" style="max-width:460px">
         <div class="painel-topo">
           <h2>Editar lançamento</h2>
-          <button class="fechar" @click="editando = null">×</button>
+          <button class="fechar" @click="editando = null"><i class="mi">close</i></button>
         </div>
         <div class="painel-corpo">
           <div class="campo">

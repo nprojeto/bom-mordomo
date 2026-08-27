@@ -62,7 +62,7 @@ const totais = computed(() => {
   const soma = (tipo: string, fn: (c: any) => number) =>
     ativos.filter((c) => c.tipo === tipo).reduce((s, c) => s + fn(c), 0)
   const receitas = soma('receita', porMes)
-  const despesas = soma('despesa', porMes)
+  const despesas = soma('despesa', porMes) + totalCartoes.value
   return {
     receitas,
     despesas,
@@ -81,14 +81,27 @@ const rotuloModalidade: Record<string, string> = {
 }
 
 const erroCarga = ref('')
+const cartoes = ref<any[]>([])
+
+// O que cada cartão pesa por mês: a fatura fechada se ainda vence,
+// senão a que está acumulando agora.
+function pesoDoCartao(c: any) {
+  return Number(c.tem_fechada ? c.total_fechada : c.total_aberta) || 0
+}
+
+const totalCartoes = computed(() =>
+  cartoes.value.reduce((s, c) => s + pesoDoCartao(c), 0))
 
 async function carregar() {
   carregando.value = true
   erroCarga.value = ''
   try {
-    const [c, k] = await Promise.all([api.get('/compromissos'), api.get('/categorias')])
+    const [c, k, f] = await Promise.all([
+      api.get('/compromissos'), api.get('/categorias'), api.get('/faturas')
+    ])
     lista.value = c ?? []
     categorias.value = k ?? []
+    cartoes.value = f?.cartoes ?? []
   } catch (e: any) {
     erroCarga.value = e.message
   } finally {
@@ -164,7 +177,7 @@ onMounted(carregar)
         <p>O que se repete todo mês, o que é parcelado e o que entra.
           Contas anuais e trimestrais entram no total já divididas por mês.</p>
       </div>
-      <button class="btn" @click="novo()">＋ Cadastrar</button>
+      <button class="btn" @click="novo()"><i class="mi">add</i>Cadastrar</button>
     </div>
 
     <div v-if="!carregando && lista.length" class="grade g3" style="margin-bottom:16px">
@@ -177,8 +190,8 @@ onMounted(carregar)
         <div class="rotulo">Sai por mês</div>
         <div class="selo-valor saida">{{ dinheiro(totais.despesas) }}</div>
         <div class="pequeno mudo">
-          {{ totais.qtdDespesas }} conta(s)<span v-if="totais.parceladas">
-            · {{ totais.parceladas }} parcelada(s)</span>
+          {{ totais.qtdDespesas }} conta(s)<span v-if="cartoes.length">
+            + {{ cartoes.length }} cartão(ões)</span>
         </div>
       </div>
       <div class="cartao">
@@ -187,6 +200,63 @@ onMounted(carregar)
           {{ dinheiro(totais.sobra) }}
         </div>
         <div class="pequeno mudo">antes dos gastos do dia a dia</div>
+      </div>
+    </div>
+
+    <!-- cartões de crédito: uma linha por cartão -->
+    <div v-if="cartoes.length" class="cartao chapa larga" style="margin-bottom:16px">
+      <div class="cartao-topo">
+        <h2>Cartões de crédito</h2>
+        <span class="num saida">{{ dinheiro(totalCartoes) }}</span>
+      </div>
+      <div class="tabela-rolagem">
+        <table>
+          <thead>
+            <tr><th>Vence</th><th>Cartão</th><th>Fatura</th>
+                <th class="direita">Valor</th><th></th></tr>
+          </thead>
+          <tbody>
+            <tr v-for="c in cartoes" :key="c.id">
+              <td class="num" style="width:70px;font-weight:600">
+                dia {{ c.dia_vencimento }}
+              </td>
+              <td>
+                <span class="linha-flex" style="gap:7px">
+                  <i class="ponto" :style="{ background: c.cor }"></i>
+                  <span>
+                    <strong>{{ c.nome }}</strong>
+                    <span class="num mudo pequeno"> ••{{ c.ultimos4 }}</span>
+                    <div class="pequeno mudo">vira dia {{ c.dia_fechamento }}</div>
+                  </span>
+                </span>
+              </td>
+              <td class="pequeno">
+                <template v-if="c.tem_fechada">
+                  <span class="eti atrasado">fechada</span>
+                  <div class="mudo">vence {{ dataBr(c.vencimento_fechada) }}</div>
+                </template>
+                <template v-else>
+                  <span class="eti pendente">aberta</span>
+                  <div class="mudo">{{ c.itens_aberta }} lançamento(s)</div>
+                </template>
+              </td>
+              <td class="direita num saida">
+                {{ dinheiro(pesoDoCartao(c)) }}
+                <div v-if="c.tem_fechada && c.total_aberta" class="pequeno mudo">
+                  próxima: {{ dinheiro(c.total_aberta) }}
+                </div>
+              </td>
+              <td class="direita">
+                <NuxtLink to="/cartoes" class="btn claro mini">Ver</NuxtLink>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="padding:12px 16px;border-top:1px solid var(--linha)"
+           class="pequeno mudo">
+        Tudo que você lança em <NuxtLink to="/gastos"><strong>Gastos</strong></NuxtLink>
+        no crédito soma aqui automaticamente.
       </div>
     </div>
 
@@ -206,7 +276,7 @@ onMounted(carregar)
     <div class="cartao chapa">
       <div v-if="carregando" class="vazio">Consultando…</div>
       <div v-else-if="!listaFiltrada.length" class="vazio">
-        <div class="simbolo">☰</div>
+        <div class="simbolo"><i class="mi">receipt_long</i></div>
         Nada cadastrado ainda. Comece pelo aluguel, a luz, o salário.
       </div>
       <div v-else class="tabela-rolagem">
@@ -241,7 +311,7 @@ onMounted(carregar)
               </td>
               <td class="direita" style="white-space:nowrap">
                 <button class="btn claro mini" @click="editar(c)">Editar</button>
-                <button class="btn risco mini" style="margin-left:5px" @click="excluir(c)">×</button>
+                <button class="btn risco mini" style="margin-left:5px" @click="excluir(c)"><i class="mi">close</i></button>
               </td>
             </tr>
           </tbody>
@@ -267,7 +337,7 @@ onMounted(carregar)
       <div class="painel">
         <div class="painel-topo">
           <h2>{{ form.id ? 'Editar conta' : 'Nova conta' }}</h2>
-          <button class="fechar" @click="abrindo = false">×</button>
+          <button class="fechar" @click="abrindo = false"><i class="mi">close</i></button>
         </div>
 
         <div class="painel-corpo">

@@ -71,9 +71,9 @@ onMounted(carregar)
         <p>Quanto dá para gastar hoje sem apertar o fim do mês.</p>
       </div>
       <div class="linha-flex">
-        <button class="btn claro mini" @click="mudarMes(-1)">‹</button>
+        <button class="btn claro mini" @click="mudarMes(-1)"><i class="mi">chevron_left</i></button>
         <span class="pequeno mudo" style="min-width:110px;text-align:center">{{ rotuloMes }}</span>
-        <button class="btn claro mini" @click="mudarMes(1)">›</button>
+        <button class="btn claro mini" @click="mudarMes(1)"><i class="mi">chevron_right</i></button>
       </div>
     </div>
 
@@ -216,7 +216,7 @@ onMounted(carregar)
           <NuxtLink to="/gastos" class="btn claro mini">Ver histórico</NuxtLink>
         </div>
         <div v-if="!doDia.length" class="vazio">
-          <div class="simbolo">☕</div>
+          <div class="simbolo"><i class="mi">local_cafe</i></div>
           Nada gasto hoje até agora.
         </div>
         <div v-else class="tabela-rolagem">

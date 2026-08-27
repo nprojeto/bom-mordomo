@@ -5,6 +5,7 @@ const api = useApi()
 const email = ref('')
 const aviso = ref<{ texto: string; grave: boolean } | null>(null)
 const ehAdmin = ref(false)
+const servidorVelho = ref('')
 const familia = ref('')
 const recursos = ref<Record<string, boolean>>({})
 const catalogo = ref<any[]>([])
@@ -42,18 +43,18 @@ function temRecurso(chave?: string) {
 }
 
 const itens = computed(() => [
-  { para: '/',            ic: '◈', txt: 'Painel',     curto: 'Painel' },
-  { para: '/moderando',   ic: '◐', txt: 'Moderando',  curto: 'Moderar', rec: 'moderando' },
-  { para: '/calendario',  ic: '▦', txt: 'Calendário', curto: 'Agenda',  rec: 'calendario' },
-  { para: '/contas',      ic: '☰', txt: 'Contas',     curto: 'Contas',  rec: 'contas' },
-  { para: '/gastos',      ic: '◍', txt: 'Gastos',     curto: 'Gastos',  rec: 'gastos' },
-  { para: '/cartoes',     ic: '▤', txt: 'Cartões',    curto: 'Cartões', rec: 'cartoes' },
-  { para: '/reservas',    ic: '◉', txt: 'Reservas',   curto: 'Reservas',rec: 'reservas' },
-  { para: '/ajustes',     ic: '⚙', txt: 'Ajustes',    curto: 'Ajustes' },
-  { para: '/planos',      ic: '◇', txt: 'Planos',     curto: 'Planos' },
-  { para: '/conta',       ic: '⌂', txt: 'Minha casa', curto: 'Casa' },
+  { para: '/',            ic: 'grid_view',       txt: 'Painel',     curto: 'Painel' },
+  { para: '/moderando',   ic: 'speed',           txt: 'Moderando',  curto: 'Moderar', rec: 'moderando' },
+  { para: '/calendario',  ic: 'calendar_month',  txt: 'Calendário', curto: 'Agenda',  rec: 'calendario' },
+  { para: '/contas',      ic: 'receipt_long',    txt: 'Contas',     curto: 'Contas',  rec: 'contas' },
+  { para: '/gastos',      ic: 'shopping_bag',    txt: 'Gastos',     curto: 'Gastos',  rec: 'gastos' },
+  { para: '/cartoes',     ic: 'credit_card',     txt: 'Cartões',    curto: 'Cartões', rec: 'cartoes' },
+  { para: '/reservas',    ic: 'savings',         txt: 'Reservas',   curto: 'Reservas',rec: 'reservas' },
+  { para: '/ajustes',     ic: 'tune',            txt: 'Ajustes',    curto: 'Ajustes' },
+  { para: '/planos',      ic: 'workspace_premium', txt: 'Planos',   curto: 'Planos' },
+  { para: '/conta',       ic: 'home',            txt: 'Minha casa', curto: 'Casa' },
   ...(ehAdmin.value
-    ? [{ para: '/admin', ic: '✦', txt: 'Administração', curto: 'Admin' }]
+    ? [{ para: '/admin', ic: 'shield_person', txt: 'Administração', curto: 'Admin' }]
     : [])
 ].map((i: any) => ({ ...i, bloqueado: !temRecurso(i.rec) })))
 
@@ -61,6 +62,13 @@ onMounted(async () => {
   const { data } = await supa.auth.getUser()
   email.value = data.user?.email ?? ''
   if (semMenu.value) return
+  const v = await conferirVersao()
+  if (v !== VERSAO_ESPERADA) {
+    servidorVelho.value = v === 'antiga'
+      ? 'O servidor está numa versão antiga.'
+      : `O servidor está na versão ${v} e este site espera a ${VERSAO_ESPERADA}.`
+  }
+
   try {
     const c = await api.get('/conta')
     ehAdmin.value = !!c?.sou_admin
@@ -100,8 +108,8 @@ async function sair() {
         <NuxtLink v-for="i in itens" :key="i.para" :to="i.para"
                   :class="{ travado: i.bloqueado }"
                   @click="i.bloqueado && ($event.preventDefault(), explicar(i, $event))">
-          <span class="ic">{{ i.ic }}</span>{{ i.txt }}
-          <span v-if="i.bloqueado" class="cadeado">🔒</span>
+          <span class="ic"><i class="mi">{{ i.ic }}</i></span>{{ i.txt }}
+          <i v-if="i.bloqueado" class="mi cadeado">lock</i>
         </NuxtLink>
       </nav>
       <div class="rodape-barra">
@@ -111,6 +119,12 @@ async function sair() {
     </aside>
 
     <main class="palco">
+      <div v-if="servidorVelho" class="faixa-aviso grave">
+        <strong>{{ servidorVelho }}</strong>
+        Publique o arquivo <code>api.index.ts</code> em
+        Supabase → Edge Functions → api → Deploy. Algumas telas podem falhar até lá.
+      </div>
+
       <NuxtLink v-if="aviso" to="/planos" class="faixa-aviso"
                 :class="{ grave: aviso.grave }">
         {{ aviso.texto }} <strong>Ver planos ›</strong>
@@ -122,7 +136,7 @@ async function sair() {
       <NuxtLink v-for="i in itens" :key="i.para" :to="i.para"
                 :class="{ travado: i.bloqueado }"
                 @click="i.bloqueado && ($event.preventDefault(), explicar(i, $event))">
-        <span class="ic">{{ i.ic }}</span>{{ i.curto }}
+        <span class="ic"><i class="mi">{{ i.ic }}</i></span>{{ i.curto }}
       </NuxtLink>
     </nav>
     <!-- explicacao do que esta travado -->
@@ -130,7 +144,7 @@ async function sair() {
       <div class="balao" :style="{ top: balao.topo + 'px', left: balao.esquerda + 'px' }"
            @click.stop>
         <div class="balao-topo">
-          <span class="balao-cadeado">🔒</span>
+          <span class="balao-cadeado"><i class="mi">lock</i></span>
           <strong>{{ balao.nome }}</strong>
         </div>
 

@@ -14,6 +14,10 @@ export function useSupa(): SupabaseClient {
   return cliente
 }
 
+// Versão do servidor que este site espera encontrar.
+// Se não bater, o aviso aparece no topo em vez de erros soltos.
+export const VERSAO_ESPERADA = '5.5'
+
 export function useApi() {
   const cfg = useRuntimeConfig()
   const base = `${cfg.public.supabaseUrl}/functions/v1/api`
@@ -45,7 +49,8 @@ export function useApi() {
     if (!resp.ok) {
       if (resp.status === 404) {
         throw new Error(
-          'Esta função ainda não existe no servidor. Atualize a Edge Function no Supabase.')
+          `O servidor não conhece "${rota.split('?')[0]}". ` +
+          'Publique a Edge Function mais recente no Supabase.')
       }
       if (resp.status === 401) {
         throw new Error('Sua sessão expirou. Saia e entre de novo.')
@@ -61,6 +66,20 @@ export function useApi() {
     patch:  <T = any>(r: string, body?: any) => chamar<T>(r, { method: 'PATCH', body }),
     remove: <T = any>(r: string) => chamar<T>(r, { method: 'DELETE' })
   }
+}
+
+/* ------------------------------------------------------ versão do servidor */
+const versaoServidor = ref<string | null>(null)
+
+export async function conferirVersao() {
+  if (versaoServidor.value) return versaoServidor.value
+  try {
+    const r = await useApi().get('/versao')
+    versaoServidor.value = String(r?.versao ?? '?')
+  } catch {
+    versaoServidor.value = 'antiga'
+  }
+  return versaoServidor.value
 }
 
 /* --------------------------------------------------- recursos do plano */

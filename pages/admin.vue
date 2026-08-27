@@ -170,7 +170,7 @@ onMounted(carregar)
     </div>
 
     <div v-if="semAcesso" class="cartao vazio">
-      <div class="simbolo">🔒</div>
+      <div class="simbolo"><i class="mi">lock</i></div>
       Esta área é do administrador da plataforma.
     </div>
 
@@ -295,7 +295,7 @@ onMounted(carregar)
 
         <div class="entre" style="margin-bottom:14px">
           <h2>Planos oferecidos</h2>
-          <button class="btn" @click="novoPlano">＋ Novo plano</button>
+          <button class="btn" @click="novoPlano"><i class="mi">add</i>Novo plano</button>
         </div>
 
         <div v-if="!planos.length" class="cartao vazio">
@@ -365,7 +365,7 @@ onMounted(carregar)
       <div class="painel" style="max-width:580px">
         <div class="painel-topo">
           <h2>{{ editando.id ? 'Editar plano' : 'Novo plano' }}</h2>
-          <button class="fechar" @click="editando = null">×</button>
+          <button class="fechar" @click="editando = null"><i class="mi">close</i></button>
         </div>
 
         <div class="painel-corpo">

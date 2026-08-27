@@ -179,7 +179,7 @@ onMounted(carregar)
         <button v-if="qtdArquivadas" class="btn claro" @click="verArquivadas = !verArquivadas">
           {{ verArquivadas ? 'Ocultar arquivadas' : `Ver arquivadas (${qtdArquivadas})` }}
         </button>
-        <button class="btn" @click="novaReserva()">＋ Nova reserva</button>
+        <button class="btn" @click="novaReserva()"><i class="mi">add</i>Nova reserva</button>
       </div>
     </div>
 
@@ -195,7 +195,7 @@ onMounted(carregar)
 
     <div v-if="carregando" class="vazio">Consultando…</div>
     <div v-else-if="!visiveis.length" class="cartao vazio">
-      <div class="simbolo">◉</div>
+      <div class="simbolo"><i class="mi">savings</i></div>
       Nenhuma reserva ainda.
     </div>
 
@@ -244,7 +244,7 @@ onMounted(carregar)
       <div class="painel">
         <div class="painel-topo">
           <h2>{{ selecionada.nome }}</h2>
-          <button class="fechar" @click="selecionada = null">×</button>
+          <button class="fechar" @click="selecionada = null"><i class="mi">close</i></button>
         </div>
         <div class="painel-corpo" style="padding:0">
           <div v-if="!extrato.length" class="vazio">Sem lançamentos ainda.</div>
@@ -262,7 +262,7 @@ onMounted(carregar)
                 </td>
                 <td class="direita" style="white-space:nowrap">
                   <button class="btn claro mini" @click="editarMov(m)">Editar</button>
-                  <button class="btn risco mini" style="margin-left:4px" @click="apagarMov(m)">×</button>
+                  <button class="btn risco mini" style="margin-left:4px" @click="apagarMov(m)"><i class="mi">close</i></button>
                 </td>
               </tr>
             </tbody>
@@ -281,7 +281,7 @@ onMounted(carregar)
       <div class="painel">
         <div class="painel-topo">
           <h2>{{ formR.id ? 'Editar reserva' : 'Nova reserva' }}</h2>
-          <button class="fechar" @click="abrindoReserva = false">×</button>
+          <button class="fechar" @click="abrindoReserva = false"><i class="mi">close</i></button>
         </div>
         <div class="painel-corpo">
           <div class="campo">
@@ -336,7 +336,7 @@ onMounted(carregar)
       <div class="painel" style="max-width:420px">
         <div class="painel-topo">
           <h2>{{ formM.id ? 'Editar lançamento' : 'Lançar movimento' }}</h2>
-          <button class="fechar" @click="abrindoMov = false">×</button>
+          <button class="fechar" @click="abrindoMov = false"><i class="mi">close</i></button>
         </div>
         <div class="painel-corpo">
           <div class="campo">

@@ -6,10 +6,10 @@
 
 :root {
   /* --- azul da marca --- */
-  --azul:        #0B72CE;
-  --azul-forte:  #0A5EAB;
-  --azul-suave:  #E8F1FB;
-  --azul-borda:  #C3DDF6;
+  --azul:        #0A4E91;
+  --azul-forte:  #073A6D;
+  --azul-suave:  #E7EFF8;
+  --azul-borda:  #BCD3EA;
 
   /* --- texto e superfícies --- */
   --tinta:    #16202E;
@@ -40,6 +40,16 @@
   --sans: 'Inter', -apple-system, 'Segoe UI', Roboto, sans-serif;
   --titulo: 'Plus Jakarta Sans', var(--sans);
   --mono: var(--sans);
+}
+
+/* ícones: Material Symbols arredondado e preenchido */
+.mi {
+  font-family: 'Material Symbols Rounded'; font-weight: normal; font-style: normal;
+  line-height: 1; letter-spacing: normal; text-transform: none; display: inline-block;
+  white-space: nowrap; word-wrap: normal; direction: ltr;
+  -webkit-font-feature-settings: 'liga'; -webkit-font-smoothing: antialiased;
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  font-size: 1.15em; vertical-align: -.18em; user-select: none;
 }
 
 * { box-sizing: border-box; }
@@ -114,16 +124,17 @@ a { color: inherit; }
   box-shadow: 0 4px 12px -4px rgba(0,0,0,.2);
 }
 .menu .ic {
-  width: 26px; height: 26px; flex: 0 0 26px; border-radius: 8px;
-  display: grid; place-items: center; font-size: .82rem;
+  width: 30px; height: 30px; flex: 0 0 30px; border-radius: 9px;
+  display: grid; place-items: center;
   background: rgba(255,255,255,.14);
 }
+.menu .ic .mi { font-size: 17px; vertical-align: 0; }
 .menu a.router-link-active .ic { background: var(--azul-suave); color: var(--azul); }
 
 .menu a.travado { color: rgba(255,255,255,.45); }
 .menu a.travado .ic { background: rgba(255,255,255,.08); }
 .menu a.travado:hover { background: rgba(255,255,255,.07); color: rgba(255,255,255,.6); }
-.menu a.travado .cadeado { margin-left: auto; font-size: .68rem; }
+.menu a.travado .cadeado { margin-left: auto; font-size: 15px; opacity: .75; }
 
 .rodape-barra { margin-top: auto; font-size: .76rem; color: rgba(255,255,255,.65); }
 .rodape-barra button {
@@ -300,10 +311,11 @@ input:disabled, select:disabled { background: var(--papel); color: var(--tinta-4
 /* --------------------------------------------------------- estados */
 .vazio { padding: 48px 20px; text-align: center; color: var(--tinta-45); }
 .vazio .simbolo {
-  font-size: 1.5rem; margin: 0 auto 12px; width: 54px; height: 54px;
+  margin: 0 auto 12px; width: 54px; height: 54px;
   border-radius: 50%; background: var(--azul-suave); color: var(--azul);
-  display: grid; place-items: center;
+  display: grid; place-items: center; font-size: 1.5rem;
 }
+.vazio .simbolo .mi { font-size: 26px; vertical-align: 0; }
 .aviso {
   padding: 13px 16px; border-radius: 11px; font-size: .86rem;
   background: var(--alerta-fraco); color: #8A5400; border: 1px solid #F4DFB8;
@@ -350,9 +362,10 @@ input:disabled, select:disabled { background: var(--papel); color: var(--tinta-4
 }
 .balao-topo { display: flex; align-items: center; gap: 9px; margin-bottom: 9px; }
 .balao-cadeado {
-  width: 26px; height: 26px; border-radius: 8px; background: var(--azul-suave);
-  display: grid; place-items: center; font-size: .78rem;
+  width: 28px; height: 28px; border-radius: 9px; background: var(--azul-suave);
+  color: var(--azul); display: grid; place-items: center;
 }
+.balao-cadeado .mi { font-size: 16px; vertical-align: 0; }
 .balao p { margin: 0 0 9px; font-size: .84rem; color: var(--tinta-70); line-height: 1.55; }
 .balao .balao-nota { color: var(--saida); font-size: .78rem; margin-bottom: 13px; font-weight: 600; }
 
@@ -454,7 +467,12 @@ input:disabled, select:disabled { background: var(--papel); color: var(--tinta-4
     text-decoration: none; color: var(--tinta-45); font-size: .48rem;
     font-weight: 600; letter-spacing: -.01em; text-align: center; line-height: 1.1;
   }
-  .menu-mobile a .ic { font-size: .95rem; }
+  .menu-mobile a .ic {
+    width: 26px; height: 26px; border-radius: 8px; background: transparent;
+    display: grid; place-items: center;
+  }
+  .menu-mobile a .ic .mi { font-size: 19px; vertical-align: 0; }
+  .menu-mobile a.router-link-active .ic { background: var(--azul-suave); }
   .menu-mobile a.router-link-active { color: var(--azul); }
   .menu-mobile a.travado { opacity: .38; }
 

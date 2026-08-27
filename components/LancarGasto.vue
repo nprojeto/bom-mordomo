@@ -246,11 +246,12 @@ defineExpose({ editar, novoManual, carregarApoio })
     <!-- microfone -->
     <div class="cartao centro" style="padding:24px 20px;margin-bottom:14px">
       <button v-if="temVoz" class="botao-voz" :class="{ ativo: ouvindo }"
-              :disabled="!suportaVoz" @click="ouvindo ? parar() : ouvir()">
-        <span>{{ ouvindo ? '■' : '●' }}</span>
+              :disabled="!suportaVoz" @click="ouvindo ? parar() : ouvir()"
+              :aria-label="ouvindo ? 'Parar de ouvir' : 'Falar o gasto'">
+        <i class="mi">{{ ouvindo ? 'stop' : 'mic' }}</i>
       </button>
       <NuxtLink v-else to="/planos?bloqueado=voz" class="botao-voz travado">
-        <span>🔒</span>
+        <i class="mi">lock</i>
       </NuxtLink>
 
       <div style="margin-top:12px;min-height:22px">
@@ -289,7 +290,7 @@ defineExpose({ editar, novoManual, carregarApoio })
         <div class="rotulo">
           {{ form.id ? 'Editando gasto' : (form.origem === 'voz' ? 'Entendi assim — confira' : 'Novo gasto') }}
         </div>
-        <button class="fechar" @click="form = null">×</button>
+        <button class="fechar" @click="form = null"><i class="mi">close</i></button>
       </div>
 
       <div class="resumo-voz">
@@ -427,7 +428,7 @@ defineExpose({ editar, novoManual, carregarApoio })
 .botao-voz {
   width: 88px; height: 88px; border-radius: 50%;
   border: 2px solid var(--azul); background: var(--azul); color: #fff;
-  font-size: 1.5rem; cursor: pointer; transition: .2s;
+  display: inline-grid; place-items: center; cursor: pointer; transition: .2s;
   box-shadow: 0 8px 24px -10px rgba(11,114,206,.35);
 }
 .botao-voz:hover { background: var(--azul-forte); }
@@ -438,6 +439,7 @@ defineExpose({ editar, novoManual, carregarApoio })
   box-shadow: none; font-size: 1.6rem;
 }
 .botao-voz.travado:hover { background: var(--linha); }
+.botao-voz .mi { font-size: 38px; vertical-align: 0; }
 .botao-voz.ativo {
   background: var(--saida); border-color: var(--saida);
   animation: pulso 1.4s ease-in-out infinite;
