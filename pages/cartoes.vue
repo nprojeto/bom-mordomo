@@ -140,7 +140,7 @@ onMounted(carregar)
       Nenhum cartão cadastrado. Cadastre um para lançar gastos no crédito.
     </div>
 
-    <div v-else class="grade g2">
+    <div v-else class="grade g2 larga">
       <div v-for="c in cartoes" :key="c.id" class="cartao"
            :style="{ borderTop: `3px solid ${c.cor}` }">
         <div class="entre">

@@ -86,7 +86,7 @@ onMounted(carregar)
 
     <template v-else-if="dados">
       <!-- limite de hoje -->
-      <div class="cartao painel-limite">
+      <div class="cartao painel-limite larga">
         <div class="rotulo">Você pode gastar hoje</div>
         <div class="limite-grande" :class="sobraDeHoje < 0 ? 'saida' : ''">
           {{ dinheiro(dados.limite_hoje) }}

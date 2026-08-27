@@ -74,7 +74,7 @@ onMounted(carregar)
     <template v-else-if="resumo">
       <!-- caixa -->
       <div class="grade g3" style="margin-bottom:16px">
-        <div class="cartao caixa-destaque">
+        <div class="cartao caixa-destaque larga">
           <div class="rotulo">No caixa hoje</div>
           <div class="selo-valor" :class="Number(resumo.caixa_real) >= 0 ? 'entrada' : 'saida'">
             {{ dinheiro(resumo.caixa_real) }}

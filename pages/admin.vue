@@ -302,7 +302,7 @@ onMounted(carregar)
           Nenhum plano criado ainda.
         </div>
 
-        <div v-else class="grade g2">
+        <div v-else class="grade g2 larga">
           <div v-for="p in planos" :key="p.id" class="cartao"
                :style="p.ativo ? '' : 'opacity:.55'">
             <div class="entre">

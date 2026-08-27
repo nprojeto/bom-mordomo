@@ -386,15 +386,61 @@ input:disabled, select:disabled { background: var(--papel); color: var(--tinta-4
 }
 
 @media (max-width: 760px) {
+  body { font-size: 14px; }
+
   .barra { display: none; }
-  .palco { padding: 18px 14px 96px; }
-  .g2, .g4 { grid-template-columns: 1fr; }
-  .dupla { grid-template-columns: 1fr; }
-  .dia { min-height: 74px; padding: 5px; }
-  .pilula { font-size: .6rem; padding: 2px 4px; }
+  .palco { padding: 14px 12px 88px; }
+
+  /* dois por linha: rolar menos vale mais que caber muito texto */
+  .grade { gap: 9px; }
+  .g2, .g3, .g4 { grid-template-columns: repeat(2, 1fr); }
+  .dupla { grid-template-columns: repeat(2, 1fr); gap: 9px; }
+
+  h1 { font-size: 1.25rem; }
+  h2 { font-size: 1rem; }
+  h3 { font-size: .92rem; }
+
+  .topo { margin-bottom: 15px; }
+  .topo p { font-size: .8rem; margin-top: 3px; }
+
+  .cartao { padding: 13px 14px; border-radius: 12px; }
+  .cartao-topo { padding: 12px 14px; }
+  .selo-valor { font-size: 1.2rem; letter-spacing: -.04em; }
+  .caixa-destaque .selo-valor { font-size: 1.5rem; }
+  .rotulo { font-size: .61rem; letter-spacing: .05em; }
+  .pequeno { font-size: .74rem; }
+
+  th { padding: 8px 11px; font-size: .61rem; }
+  td { padding: 10px 11px; font-size: .82rem; }
+
+  .btn { padding: 9px 15px; font-size: .82rem; }
+  .btn.mini { padding: 5px 11px; font-size: .72rem; }
+  input, select, textarea { padding: 9px 11px; font-size: .86rem; }
+  label { font-size: .72rem; margin-bottom: 4px; }
+  .campo { margin-bottom: 11px; }
+
+  .painel-corpo { padding: 16px 16px; }
+  .painel-topo, .painel-pe { padding: 14px 16px; }
+  .vazio { padding: 32px 16px; }
+  .vazio .simbolo { width: 44px; height: 44px; font-size: 1.2rem; margin-bottom: 9px; }
+  .aviso { padding: 10px 12px; font-size: .79rem; border-radius: 9px; }
+
+  .dia { min-height: 66px; padding: 4px; }
+  .pilula { font-size: .58rem; padding: 2px 4px; border-radius: 4px; }
+  .dia-num { font-size: .74rem; }
+  .dia.hoje .dia-num { width: 20px; height: 20px; font-size: .68rem; }
+  .dia-total { font-size: .6rem; }
+  .folha-cabeca { padding: 13px 14px; }
+  .mes-titulo { font-size: 1.05rem; }
+  .semana div { padding: 6px 3px; font-size: .6rem; }
+
   .tabela-rolagem { overflow-x: auto; }
-  .tabela-rolagem table { min-width: 620px; }
-  .selo-valor { font-size: 1.45rem; }
+  .tabela-rolagem table { min-width: 560px; }
+
+  /* estes precisam da linha inteira para não espremer */
+  .cartao.chapa, .folha { grid-column: 1 / -1; }
+  .grade.larga { grid-template-columns: 1fr; }
+  .larga { grid-column: 1 / -1; }
 
   .menu-mobile {
     display: grid; grid-template-columns: repeat(10, 1fr);

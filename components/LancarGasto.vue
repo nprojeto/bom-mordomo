@@ -307,9 +307,6 @@ defineExpose({ editar, novoManual, carregarApoio })
             </span>
           </div>
         </div>
-        <button class="btn latao" :disabled="salvando || cartaoObrigatorio" @click="salvar">
-          {{ salvando ? 'Gravando…' : (form.id ? 'Salvar' : 'Gravar') }}
-        </button>
       </div>
 
       <div v-if="cartaoObrigatorio && cartoes.length" class="aviso" style="margin-bottom:14px">
@@ -409,6 +406,9 @@ defineExpose({ editar, novoManual, carregarApoio })
       <div v-if="erro" class="aviso mal" style="margin-bottom:12px">{{ erro }}</div>
 
       <div class="linha-flex">
+        <button class="btn latao" :disabled="salvando || cartaoObrigatorio" @click="salvar">
+          {{ salvando ? 'Gravando…' : (form.id ? 'Salvar alteração' : 'Gravar gasto') }}
+        </button>
         <button class="btn claro" @click="form = null">Descartar</button>
       </div>
     </div>

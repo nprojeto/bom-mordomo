@@ -199,7 +199,7 @@ onMounted(carregar)
       Nenhuma reserva ainda.
     </div>
 
-    <div v-else class="grade g2">
+    <div v-else class="grade g2 larga">
       <div v-for="r in visiveis" :key="r.id" class="cartao"
            :style="r.ativo === false ? 'opacity:.6' : ''">
         <div class="entre">
