@@ -29,15 +29,26 @@ const exemplos = [
 ]
 
 const rotuloForma: Record<string, string> = {
-  dinheiro: 'Dinheiro', pix: 'Pix', debito: 'Débito', credito: 'Crédito'
+  dinheiro: 'Dinheiro', pix: 'Pix', debito: 'Débito',
+  credito: 'Crédito', beneficio: 'Vale'
 }
-const FORMAS = ['dinheiro', 'pix', 'debito', 'credito']
+const FORMAS = ['dinheiro', 'pix', 'debito', 'credito', 'beneficio']
+
+const deCredito = computed(() => cartoes.value.filter((c) => c.tipo !== 'beneficio'))
+const deBeneficio = computed(() => cartoes.value.filter((c) => c.tipo === 'beneficio'))
+const ehVale = computed(() => form.value?.forma === 'beneficio')
 
 const cartaoObrigatorio = computed(() =>
-  form.value?.forma === 'credito' && !form.value?.cartao_id)
+  ['credito', 'beneficio'].includes(form.value?.forma) && !form.value?.cartao_id)
 
 const cartaoEscolhido = computed(() =>
   cartoes.value.find((c) => c.id === form.value?.cartao_id) ?? null)
+
+const valeEscolhido = computed(() =>
+  ehVale.value ? cartaoEscolhido.value : null)
+
+const sobraNoVale = computed(() =>
+  Number(valeEscolhido.value?.saldo ?? 0) - totalDaCompra.value)
 
 const totalDaCompra = computed(() => {
   if (!form.value) return 0
@@ -205,7 +216,15 @@ function editar(g: any) {
 
 watch(() => form.value?.forma, (nova) => {
   if (!form.value) return
-  if (nova !== 'credito') { form.value.parcelas = 1; form.value.cartao_id = '' }
+  if (nova !== 'credito') form.value.parcelas = 1
+  if (!['credito', 'beneficio'].includes(nova)) form.value.cartao_id = ''
+  // o vale escolhido não serve para o crédito, e vice-versa
+  if (nova === 'beneficio' && deCredito.value.some((c) => c.id === form.value.cartao_id)) {
+    form.value.cartao_id = deBeneficio.value.length === 1 ? deBeneficio.value[0].id : ''
+  }
+  if (nova === 'credito' && deBeneficio.value.some((c) => c.id === form.value.cartao_id)) {
+    form.value.cartao_id = ''
+  }
 })
 
 async function salvar() {
@@ -306,6 +325,9 @@ defineExpose({ editar, novoManual, carregarApoio })
             <span v-if="cartaoEscolhido" class="mudo">
               · {{ cartaoEscolhido.nome }} ••{{ cartaoEscolhido.ultimos4 }}
             </span>
+            <span v-if="valeEscolhido" class="mudo">
+              · sobra {{ dinheiro(sobraNoVale) }}
+            </span>
           </div>
         </div>
       </div>
@@ -368,8 +390,8 @@ defineExpose({ editar, novoManual, carregarApoio })
         </div>
       </div>
 
-      <div v-if="form.forma === 'credito' && !cartoes.length" class="aviso mal">
-        Você ainda não tem cartão cadastrado.
+      <div v-if="form.forma === 'credito' && !deCredito.length" class="aviso mal">
+        Você ainda não tem cartão de crédito cadastrado.
         <NuxtLink to="/cartoes"><strong>Cadastre um aqui.</strong></NuxtLink>
       </div>
 
@@ -398,6 +420,9 @@ defineExpose({ editar, novoManual, carregarApoio })
       <div class="aviso pequeno" style="margin-bottom:12px">
         <template v-if="form.forma === 'credito'">
           Vai para a fatura do cartão e sai do saldo só no vencimento dela.
+        </template>
+        <template v-else-if="ehVale">
+          Sai do saldo do vale, não do seu dinheiro. Não entra no limite diário.
         </template>
         <template v-else>
           Sai do saldo na hora, no dia {{ dataBr(form.data) }}.

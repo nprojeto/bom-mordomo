@@ -161,6 +161,10 @@ onMounted(carregar)
           <div class="pequeno mudo" style="margin-top:10px">
             Contas fixas: <span class="num">{{ dinheiro(resumo.despesas_contas) }}</span> ·
             Gastos: <span class="num">{{ dinheiro(resumo.despesas_gastos) }}</span>
+            <span v-if="Number(resumo.gasto_beneficio)">
+              · Vales: <span class="num">{{ dinheiro(resumo.gasto_beneficio) }}</span>
+              <span style="opacity:.8">(fora do caixa)</span>
+            </span>
           </div>
         </div>
       </div>

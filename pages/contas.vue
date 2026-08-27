@@ -89,8 +89,14 @@ function pesoDoCartao(c: any) {
   return Number(c.tem_fechada ? c.total_fechada : c.total_aberta) || 0
 }
 
+const deCredito = computed(() => cartoes.value.filter((c) => c.tipo !== 'beneficio'))
+const deBeneficio = computed(() => cartoes.value.filter((c) => c.tipo === 'beneficio'))
+
 const totalCartoes = computed(() =>
-  cartoes.value.reduce((s, c) => s + pesoDoCartao(c), 0))
+  deCredito.value.reduce((s, c) => s + pesoDoCartao(c), 0))
+
+const totalSaldoVale = computed(() =>
+  deBeneficio.value.reduce((s, c) => s + Number(c.saldo || 0), 0))
 
 async function carregar() {
   carregando.value = true
@@ -204,7 +210,7 @@ onMounted(carregar)
     </div>
 
     <!-- cartões de crédito: uma linha por cartão -->
-    <div v-if="cartoes.length" class="cartao chapa larga" style="margin-bottom:16px">
+    <div v-if="deCredito.length" class="cartao chapa larga" style="margin-bottom:16px">
       <div class="cartao-topo">
         <h2>Cartões de crédito</h2>
         <span class="num saida">{{ dinheiro(totalCartoes) }}</span>
@@ -216,7 +222,7 @@ onMounted(carregar)
                 <th class="direita">Valor</th><th></th></tr>
           </thead>
           <tbody>
-            <tr v-for="c in cartoes" :key="c.id">
+            <tr v-for="c in deCredito" :key="c.id">
               <td class="num" style="width:70px;font-weight:600">
                 dia {{ c.dia_vencimento }}
               </td>
@@ -257,6 +263,59 @@ onMounted(carregar)
            class="pequeno mudo">
         Tudo que você lança em <NuxtLink to="/gastos"><strong>Gastos</strong></NuxtLink>
         no crédito soma aqui automaticamente.
+      </div>
+    </div>
+
+    <!-- vales-benefício: saldo, não conta a pagar -->
+    <div v-if="deBeneficio.length" class="cartao chapa larga" style="margin-bottom:16px">
+      <div class="cartao-topo">
+        <h2>Vales-benefício</h2>
+        <span class="num entrada">{{ dinheiro(totalSaldoVale) }}</span>
+      </div>
+      <div class="tabela-rolagem">
+        <table>
+          <thead>
+            <tr><th>Entra</th><th>Vale</th><th>Período</th>
+                <th class="direita">Saldo</th><th></th></tr>
+          </thead>
+          <tbody>
+            <tr v-for="c in deBeneficio" :key="c.id">
+              <td class="num" style="width:70px;font-weight:600">
+                dia {{ c.dia_recarga }}
+              </td>
+              <td>
+                <span class="linha-flex" style="gap:7px">
+                  <i class="ponto" :style="{ background: c.cor }"></i>
+                  <span>
+                    <strong>{{ c.nome }}</strong>
+                    <span class="num mudo pequeno"> ••{{ c.ultimos4 }}</span>
+                    <div class="pequeno mudo">
+                      {{ dinheiro(c.valor_recarga) }} por período ·
+                      {{ c.acumula ? 'acumula' : 'não acumula' }}
+                    </div>
+                  </span>
+                </span>
+              </td>
+              <td class="pequeno">
+                <span class="eti" :class="c.estourou ? 'atrasado' : 'pago'">
+                  {{ c.estourou ? 'estourou' : 'disponível' }}
+                </span>
+                <div class="mudo">usou {{ dinheiro(c.gasto_no_periodo) }}</div>
+              </td>
+              <td class="direita num" :class="c.estourou ? 'saida' : 'entrada'">
+                {{ dinheiro(c.saldo) }}
+                <div class="pequeno mudo">recarrega {{ dataBr(c.proxima_recarga) }}</div>
+              </td>
+              <td class="direita">
+                <NuxtLink to="/cartoes" class="btn claro mini">Ver</NuxtLink>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="padding:12px 16px;border-top:1px solid var(--linha)" class="pequeno mudo">
+        Saldo de vale não é conta a pagar — é dinheiro já disponível.
+        Por isso não entra no total de saídas nem no limite diário.
       </div>
     </div>
 

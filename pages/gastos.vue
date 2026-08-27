@@ -13,9 +13,10 @@ const filtroForma = ref('')
 const lancador = ref<any>(null)
 
 const rotuloForma: Record<string, string> = {
-  dinheiro: 'Dinheiro', pix: 'Pix', debito: 'Débito', credito: 'Crédito'
+  dinheiro: 'Dinheiro', pix: 'Pix', debito: 'Débito',
+  credito: 'Crédito', beneficio: 'Vale'
 }
-const FORMAS = ['dinheiro', 'pix', 'debito', 'credito']
+const FORMAS = ['dinheiro', 'pix', 'debito', 'credito', 'beneficio']
 
 async function carregar() {
   carregando.value = true
@@ -116,7 +117,14 @@ onMounted(carregar)
                 <div v-if="g.observacao" class="pequeno mudo">“{{ g.observacao }}”</div>
               </td>
               <td class="pequeno">
-                <span v-if="g.forma !== 'credito'">{{ rotuloForma[g.forma] }}</span>
+                <span v-if="g.forma === 'beneficio'" class="linha-flex" style="gap:6px">
+                  <i class="ponto" :style="{ background: g.cartao_cor }"></i>
+                  <span>
+                    {{ g.cartao_nome }} <span class="num">••{{ g.ultimos4 }}</span>
+                    <span class="mudo"> · vale</span>
+                  </span>
+                </span>
+                <span v-else-if="g.forma !== 'credito'">{{ rotuloForma[g.forma] }}</span>
                 <span v-else class="linha-flex" style="gap:6px">
                   <i class="ponto" :style="{ background: g.cartao_cor }"></i>
                   <span>

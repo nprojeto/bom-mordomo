@@ -9,11 +9,18 @@ const erro = ref('')
 const detalhe = ref<any>(null)
 
 const vazio = () => ({
-  id: null as string | null, nome: '', ultimos4: '',
-  dia_fechamento: 25, dia_vencimento: 5, limite: '', cor: '#0B72CE',
+  id: null as string | null, nome: '', ultimos4: '', tipo: 'credito',
+  dia_fechamento: 25, dia_vencimento: 5, limite: '', cor: '#0A4E91',
+  dia_recarga: 1, valor_recarga: '', acumula: false,
   padrao: false, observacao: ''
 })
 const form = ref(vazio())
+
+const deCredito = computed(() => cartoes.value.filter((c) => c.tipo !== 'beneficio'))
+const deBeneficio = computed(() => cartoes.value.filter((c) => c.tipo === 'beneficio'))
+
+const totalSaldoVale = computed(() =>
+  deBeneficio.value.reduce((s, c) => s + Number(c.saldo || 0), 0))
 
 const totalAberto = computed(() =>
   cartoes.value.reduce((s, c) => s + Number(c.total_aberta || 0), 0))
@@ -39,14 +46,29 @@ function novo() { form.value = vazio(); erro.value = ''; abrindo.value = true }
 
 function editar(c: any) {
   form.value = {
-    id: c.id, nome: c.nome, ultimos4: c.ultimos4,
-    dia_fechamento: c.dia_fechamento,
-    dia_vencimento: c.dia_vencimento ?? '',
+    ...vazio(),
+    id: c.id, nome: c.nome, ultimos4: c.ultimos4, tipo: c.tipo ?? 'credito',
+    dia_fechamento: c.dia_fechamento ?? 25,
+    dia_vencimento: c.dia_vencimento ?? 5,
+    dia_recarga: c.dia_recarga ?? 1,
+    valor_recarga: c.valor_recarga ? String(c.valor_recarga).replace('.', ',') : '',
+    acumula: !!c.acumula,
     limite: c.limite ?? '', cor: c.cor, padrao: !!c.padrao, observacao: c.observacao ?? ''
   }
   erro.value = ''
   abrindo.value = true
 }
+
+function lerDinheiro(v: any): number | null {
+  if (typeof v === 'number') return isFinite(v) && v > 0 ? v : null
+  let t = String(v ?? '').trim().replace(/[R$\s]/gi, '')
+  if (!t) return null
+  if (t.includes(',')) t = t.replace(/\./g, '').replace(',', '.')
+  const n = Number(t)
+  return isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : null
+}
+
+const ehVale = computed(() => form.value.tipo === 'beneficio')
 
 async function salvar() {
   erro.value = ''
@@ -54,21 +76,38 @@ async function salvar() {
   if (!/^\d{4}$/.test(String(form.value.ultimos4))) {
     erro.value = 'Os 4 últimos dígitos são obrigatórios (só números).'; return
   }
-  if (!Number(form.value.dia_fechamento)) {
-    erro.value = 'Informe o dia em que a fatura vira.'; return
+  if (ehVale.value) {
+    if (!Number(form.value.dia_recarga)) {
+      erro.value = 'Informe o dia em que o saldo entra.'; return
+    }
+    if (lerDinheiro(form.value.valor_recarga) === null) {
+      erro.value = 'Informe quanto entra a cada recarga.'; return
+    }
+  } else {
+    if (!Number(form.value.dia_fechamento)) {
+      erro.value = 'Informe o dia em que a fatura vira.'; return
+    }
+    if (!Number(form.value.dia_vencimento)) {
+      erro.value = 'Informe o dia de vencimento da fatura.'; return
+    }
   }
-  if (!Number(form.value.dia_vencimento)) {
-    erro.value = 'Informe o dia de vencimento da fatura.'; return
-  }
-  const corpo = {
+
+  const corpo: any = {
     nome: form.value.nome.trim(),
     ultimos4: String(form.value.ultimos4),
-    dia_fechamento: Number(form.value.dia_fechamento),
-    dia_vencimento: Number(form.value.dia_vencimento),
+    tipo: form.value.tipo,
     limite: form.value.limite ? Number(form.value.limite) : null,
     cor: form.value.cor,
-    padrao: !!form.value.padrao,
+    padrao: ehVale.value ? false : !!form.value.padrao,
     observacao: form.value.observacao || null
+  }
+  if (ehVale.value) {
+    corpo.dia_recarga = Number(form.value.dia_recarga)
+    corpo.valor_recarga = lerDinheiro(form.value.valor_recarga)
+    corpo.acumula = !!form.value.acumula
+  } else {
+    corpo.dia_fechamento = Number(form.value.dia_fechamento)
+    corpo.dia_vencimento = Number(form.value.dia_vencimento)
   }
   try {
     if (form.value.id) await api.patch(`/cartoes/${form.value.id}`, corpo)
@@ -117,7 +156,7 @@ onMounted(carregar)
     <div class="topo entre">
       <div>
         <h1>Cartões</h1>
-        <p>Cada cartão junta os gastos até fechar a fatura.</p>
+        <p>Cartões de crédito com fatura e vales-benefício com saldo.</p>
       </div>
       <button class="btn" @click="novo()"><i class="mi">add</i>Novo cartão</button>
     </div>
@@ -127,7 +166,13 @@ onMounted(carregar)
       <button class="btn claro mini" @click="carregar">Tentar de novo</button>
     </div>
 
-    <div v-if="cartoes.length" class="grade g2 larga" style="margin-bottom:16px">
+    <div v-if="deBeneficio.length" class="cartao larga" style="margin-bottom:16px">
+      <div class="rotulo">Saldo nos vales</div>
+      <div class="selo-valor entrada">{{ dinheiro(totalSaldoVale) }}</div>
+      <div class="pequeno mudo">dinheiro que já é seu, esperando ser usado</div>
+    </div>
+
+    <div v-if="deCredito.length" class="grade g2 larga" style="margin-bottom:16px">
       <div class="cartao">
         <div class="rotulo">A pagar nas faturas fechadas</div>
         <div class="selo-valor saida">{{ dinheiro(totalFechado) }}</div>
@@ -157,18 +202,60 @@ onMounted(carregar)
         <div class="entre">
           <div>
             <h3>{{ c.nome }}
-              <span v-if="c.padrao" class="eti pago" style="vertical-align:middle">principal</span>
+              <span v-if="c.tipo === 'beneficio'" class="eti pago"
+                    style="vertical-align:middle">vale</span>
+              <span v-else-if="c.padrao" class="eti pago"
+                    style="vertical-align:middle">principal</span>
             </h3>
             <div class="pequeno mudo num">•••• {{ c.ultimos4 }}</div>
           </div>
           <div class="direita pequeno mudo">
-            <div>Vira dia {{ c.dia_fechamento }}</div>
-            <div>Vence dia {{ c.dia_vencimento }}</div>
+            <template v-if="c.tipo === 'beneficio'">
+              <div>Entra dia {{ c.dia_recarga }}</div>
+              <div>{{ c.acumula ? 'Acumula' : 'Não acumula' }}</div>
+            </template>
+            <template v-else>
+              <div>Vira dia {{ c.dia_fechamento }}</div>
+              <div>Vence dia {{ c.dia_vencimento }}</div>
+            </template>
           </div>
         </div>
 
+        <!-- vale-benefício: saldo do período -->
+        <template v-if="c.tipo === 'beneficio'">
+          <div class="rotulo" style="margin-top:14px">Saldo disponível</div>
+          <div class="selo-valor" :class="c.estourou ? 'saida' : 'entrada'">
+            {{ dinheiro(c.saldo) }}
+          </div>
+
+          <div class="barra-meta" style="margin-top:8px">
+            <i :style="{
+              width: Math.min(100, Math.max(0, (c.saldo / (c.disponivel_no_periodo || 1)) * 100)) + '%',
+              background: c.estourou ? 'var(--saida)' : c.cor }"></i>
+          </div>
+
+          <div class="pequeno mudo" style="margin-top:8px;line-height:1.6">
+            <div>
+              Entrou <span class="num">{{ dinheiro(c.valor_recarga) }}</span>
+              <span v-if="c.veio_do_periodo_anterior">
+                + <span class="num">{{ dinheiro(c.veio_do_periodo_anterior) }}</span> que sobrou
+              </span>
+            </div>
+            <div>Usou <span class="num">{{ dinheiro(c.gasto_no_periodo) }}</span> neste período</div>
+            <div>Próxima recarga em {{ dataBr(c.proxima_recarga) }}</div>
+          </div>
+
+          <div v-if="c.estourou" class="aviso mal pequeno" style="margin-top:10px">
+            Você gastou mais do que tinha no vale.
+          </div>
+          <div v-else-if="!c.acumula && c.saldo > 0" class="aviso pequeno" style="margin-top:10px">
+            Sobram <strong>{{ dinheiro(c.saldo) }}</strong> que se perdem em
+            {{ dataBr(c.proxima_recarga) }} — este vale não acumula.
+          </div>
+        </template>
+
         <!-- fatura que já virou e espera pagamento -->
-        <div v-if="c.tem_fechada" class="fatura fechada">
+        <div v-if="c.tipo !== 'beneficio' && c.tem_fechada" class="fatura fechada">
           <div class="entre">
             <span class="rotulo" style="color:#A32B30">Fatura fechada</span>
             <span class="eti atrasado">a pagar</span>
@@ -181,7 +268,8 @@ onMounted(carregar)
         </div>
 
         <!-- fatura que ainda acumula -->
-        <div class="fatura" :style="c.tem_fechada ? 'margin-top:10px' : 'margin-top:14px'">
+        <div v-if="c.tipo !== 'beneficio'" class="fatura"
+             :style="c.tem_fechada ? 'margin-top:10px' : 'margin-top:14px'">
           <div class="rotulo">Fatura aberta</div>
           <div class="selo-valor" :class="c.tem_fechada ? 'mudo' : 'saida'">
             {{ dinheiro(c.total_aberta) }}
@@ -192,7 +280,7 @@ onMounted(carregar)
           </div>
         </div>
 
-        <div v-if="c.limite" style="margin-top:10px">
+        <div v-if="c.limite && c.tipo !== 'beneficio'" style="margin-top:10px">
           <div class="barra-meta">
             <i :style="{ width: Math.min(100, (c.total_aberta / c.limite) * 100) + '%',
                          background: c.cor }"></i>
@@ -203,7 +291,9 @@ onMounted(carregar)
         </div>
 
         <div class="linha-flex" style="margin-top:14px;flex-wrap:wrap">
-          <button class="btn claro mini" @click="detalhe = c">Faturas</button>
+          <button class="btn claro mini" @click="detalhe = c">
+            {{ c.tipo === 'beneficio' ? 'Histórico' : 'Faturas' }}
+          </button>
           <button class="btn claro mini" @click="editar(c)">Editar</button>
           <button v-if="!c.padrao" class="btn claro mini" @click="tornarPadrao(c)">
             Tornar principal
@@ -221,10 +311,33 @@ onMounted(carregar)
           <button class="fechar" @click="detalhe = null"><i class="mi">close</i></button>
         </div>
         <div class="painel-corpo" style="padding:0">
-          <div v-if="!faturasDo(detalhe.id).length" class="vazio">
+          <!-- vale: períodos de recarga -->
+          <table v-if="detalhe.tipo === 'beneficio'">
+            <thead>
+              <tr><th>Período</th><th class="direita">Entrou</th>
+                  <th class="direita">Usou</th><th class="direita">Sobrou</th></tr>
+            </thead>
+            <tbody>
+              <tr v-for="h in detalhe.historico" :key="h.periodo">
+                <td class="num pequeno">{{ dataBr(h.periodo) }}</td>
+                <td class="direita num entrada">
+                  {{ dinheiro(h.recarga) }}
+                  <div v-if="h.vindo_de_antes" class="pequeno mudo">
+                    +{{ dinheiro(h.vindo_de_antes) }} antes
+                  </div>
+                </td>
+                <td class="direita num saida">{{ dinheiro(h.gasto) }}</td>
+                <td class="direita num" :class="h.sobra < 0 ? 'saida' : ''">
+                  {{ dinheiro(h.sobra) }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div v-else-if="!faturasDo(detalhe.id).length" class="vazio">
             Nenhuma fatura ainda.
           </div>
-          <table v-else>
+          <table v-else-if="detalhe.tipo !== 'beneficio'">
             <thead>
               <tr><th>Fatura</th><th>Vence</th><th class="direita">Itens</th>
                   <th class="direita">Total</th></tr>
@@ -255,6 +368,25 @@ onMounted(carregar)
           <button class="fechar" @click="abrindo = false"><i class="mi">close</i></button>
         </div>
         <div class="painel-corpo">
+          <div class="campo">
+            <label>Que tipo de cartão é</label>
+            <div class="linha-flex">
+              <button class="btn mini" :class="form.tipo === 'credito' ? '' : 'claro'"
+                      @click="form.tipo = 'credito'">
+                <i class="mi">credit_card</i>Crédito
+              </button>
+              <button class="btn mini" :class="form.tipo === 'beneficio' ? '' : 'claro'"
+                      @click="form.tipo = 'beneficio'">
+                <i class="mi">card_giftcard</i>Vale-benefício
+              </button>
+            </div>
+            <div class="pequeno mudo" style="margin-top:6px">
+              {{ ehVale
+                ? 'Caju, Ticket, VR, VA — tem saldo que entra na recarga.'
+                : 'Tem fatura que fecha e vence.' }}
+            </div>
+          </div>
+
           <div class="dupla">
             <div class="campo">
               <label>Nome do cartão *</label>
@@ -267,24 +399,51 @@ onMounted(carregar)
             </div>
           </div>
 
-          <div class="dupla">
-            <div class="campo">
-              <label>Dia que a fatura vira *</label>
-              <input v-model="form.dia_fechamento" type="number" min="1" max="31" />
+          <!-- crédito -->
+          <template v-if="!ehVale">
+            <div class="dupla">
+              <div class="campo">
+                <label>Dia que a fatura vira *</label>
+                <input v-model="form.dia_fechamento" type="number" min="1" max="31" />
+              </div>
+              <div class="campo">
+                <label>Dia do vencimento *</label>
+                <input v-model="form.dia_vencimento" type="number" min="1" max="31" />
+              </div>
             </div>
-            <div class="campo">
-              <label>Dia do vencimento *</label>
-              <input v-model="form.dia_vencimento" type="number" min="1" max="31" />
-            </div>
-          </div>
 
-          <div class="aviso pequeno" style="margin-bottom:13px">
-            Compras até o dia da virada entram na fatura do mês; depois disso,
-            vão para a fatura seguinte. O aviso por e-mail chega no dia do vencimento.
-          </div>
+            <div class="aviso pequeno" style="margin-bottom:13px">
+              Compras até o dia da virada entram na fatura do mês; depois disso,
+              vão para a fatura seguinte. O aviso por e-mail chega no vencimento.
+            </div>
+          </template>
+
+          <!-- vale-benefício -->
+          <template v-else>
+            <div class="dupla">
+              <div class="campo">
+                <label>Dia que o saldo entra *</label>
+                <input v-model="form.dia_recarga" type="number" min="1" max="31" />
+              </div>
+              <div class="campo">
+                <label>Quanto entra (R$) *</label>
+                <input v-model="form.valor_recarga" inputmode="decimal" placeholder="800,00" />
+              </div>
+            </div>
+
+            <div class="aviso" style="margin-bottom:13px">
+              <label class="linha-flex" style="margin:0;cursor:pointer;font-weight:500">
+                <input v-model="form.acumula" type="checkbox" style="width:auto;margin:0" />
+                <span>
+                  <strong>O saldo acumula.</strong>
+                  O que sobrar de um período soma ao próximo, em vez de zerar.
+                </span>
+              </label>
+            </div>
+          </template>
 
           <div class="dupla">
-            <div class="campo">
+            <div v-if="!ehVale" class="campo">
               <label>Limite (opcional)</label>
               <input v-model="form.limite" type="number" step="0.01" />
             </div>
@@ -299,7 +458,7 @@ onMounted(carregar)
             <input v-model="form.observacao" />
           </div>
 
-          <div class="aviso" style="margin-bottom:13px">
+          <div v-if="!ehVale" class="aviso" style="margin-bottom:13px">
             <label class="linha-flex" style="margin:0;cursor:pointer;font-weight:500">
               <input v-model="form.padrao" type="checkbox" style="width:auto;margin:0" />
               <span>Este é meu cartão principal — quando eu falar “no crédito”
