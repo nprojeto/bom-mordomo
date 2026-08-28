@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const { escuroAgora, alternar } = useTema()
 const supa = useSupa()
+const api = useApi()
 const rota = useRoute()
 
 const etapa = ref<'dados' | 'codigo'>('dados')
@@ -52,59 +53,66 @@ async function criar() {
   if (senha.value !== senha2.value) { erro.value = 'As senhas não são iguais.'; return }
 
   carregando.value = true
-  const { data, error } = await supa.auth.signUp({
-    email: mail,
-    password: senha.value,
-    options: { data: { nome: nome.value.trim(), casa: casa.value.trim() || null } }
-  })
-  carregando.value = false
 
-  if (error) {
-    erro.value = error.message.includes('already registered')
-      ? 'Já existe uma conta com este e-mail. Tente entrar.'
-      : error.message
-    return
+  // O código sai do nosso servidor, pelo Brevo. O Supabase não envia
+  // nada: os limites dele são baixos e as falhas ficam invisíveis.
+  try {
+    await api.post('/acesso/codigo', {
+      email: mail, tipo: 'cadastro',
+      nome: nome.value.trim(), casa: casa.value.trim() || null
+    })
+    etapa.value = 'codigo'
+    contar()
+  } catch (e: any) {
+    erro.value = e.message
   }
-
-  // se a confirmação estiver desligada no projeto, já entra
-  if (data.session) { await navigateTo('/'); return }
-
-  etapa.value = 'codigo'
-  contar()
+  carregando.value = false
 }
 
 async function conferir() {
   erro.value = ''
-  if (codigo.value.length < 6) { erro.value = 'Digite os 6 números.'; return }
+  if (codigo.value.length < 6) { erro.value = 'Digite o código inteiro.'; return }
 
+  const mail = email.value.trim().toLowerCase()
   carregando.value = true
-  const { data, error } = await supa.auth.verifyOtp({
-    email: email.value.trim().toLowerCase(),
-    token: codigo.value,
-    type: 'signup'
+
+  try {
+    // o servidor confere o código e cria a conta já confirmada
+    await api.post('/acesso/confirmar', {
+      email: mail, tipo: 'cadastro', codigo: codigo.value, senha: senha.value
+    })
+  } catch (e: any) {
+    carregando.value = false
+    erro.value = e.message
+    if (String(e.message).toLowerCase().includes('incorreto')) codigo.value = ''
+    return
+  }
+
+  // conta criada: entra normalmente
+  const { error } = await supa.auth.signInWithPassword({
+    email: mail, password: senha.value
   })
   carregando.value = false
 
   if (error) {
-    erro.value = String(error.message).toLowerCase().includes('expired')
-      ? 'Este código expirou. Peça outro.'
-      : 'Código incorreto. Confira e tente de novo.'
-    codigo.value = ''
+    erro.value = 'Conta criada. Entre com seu e-mail e senha.'
+    setTimeout(() => navigateTo('/login'), 2000)
     return
   }
-  if (data.session) { await navigateTo('/'); return }
-  erro.value = 'Não consegui concluir. Tente entrar pela tela de acesso.'
+  await navigateTo('/')
 }
 
 async function reenviar() {
   if (espera.value > 0) return
   erro.value = ''; recado.value = ''
-  const { error } = await supa.auth.resend({
-    type: 'signup', email: email.value.trim().toLowerCase()
-  })
-  if (error) { erro.value = error.message; return }
-  recado.value = 'Mandamos outro código.'
-  contar()
+  try {
+    await api.post('/acesso/codigo', {
+      email: email.value.trim().toLowerCase(), tipo: 'cadastro',
+      nome: nome.value.trim(), casa: casa.value.trim() || null
+    })
+    recado.value = 'Mandamos outro código.'
+    contar()
+  } catch (e: any) { erro.value = e.message }
 }
 </script>
 
@@ -120,7 +128,7 @@ async function reenviar() {
       <template v-if="etapa === 'codigo'">
         <div class="portao-marca">Confirme o e-mail</div>
         <div class="portao-sub">
-          Enviamos 6 números para<br><strong>{{ email }}</strong>
+          Enviamos um código para<br><strong>{{ email }}</strong>
         </div>
 
         <CampoCodigo v-model="codigo" :erro="!!erro" @completo="conferir" />

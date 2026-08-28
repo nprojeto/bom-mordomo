@@ -1,4 +1,4 @@
-const PUBLICAS = ['/login', '/criar-conta', '/recuperar', '/nova-senha']
+const PUBLICAS = ['/login', '/criar-conta', '/recuperar']
 
 // Qual funcionalidade cada tela exige
 const RECURSO_DA_TELA: Record<string, string> = {
@@ -18,7 +18,6 @@ export default defineNuxtRouteMiddleware(async (para) => {
   const logado = !!data.session
   const publica = PUBLICAS.includes(para.path)
 
-  if (para.path === '/nova-senha') return
   if (!logado && !publica) return navigateTo('/login')
   if (logado && publica) return navigateTo('/')
   if (!logado) return

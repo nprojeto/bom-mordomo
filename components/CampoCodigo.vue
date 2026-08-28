@@ -1,19 +1,31 @@
 <script setup lang="ts">
-const props = defineProps<{ modelValue: string; erro?: boolean }>()
+const props = withDefaults(defineProps<{
+  modelValue: string
+  erro?: boolean
+  minimo?: number
+  maximo?: number
+}>(), { minimo: 6, maximo: 10 })
+
 const emit = defineEmits<{ 'update:modelValue': [string]; completo: [string] }>()
 
-const TAM = 6
 const caixas = ref<HTMLInputElement[]>([])
 
+// O tamanho do código vem do servidor e pode mudar. Em vez de travar em
+// seis casas, o campo cresce conforme o que for digitado ou colado.
+const TAM = computed(() => Math.min(
+  props.maximo,
+  Math.max(props.minimo, String(props.modelValue ?? '').replace(/\D/g, '').length)
+))
+
 const digitos = computed(() => {
-  const v = String(props.modelValue ?? '').replace(/\D/g, '').slice(0, TAM)
-  return Array.from({ length: TAM }, (_, i) => v[i] ?? '')
+  const v = String(props.modelValue ?? '').replace(/\D/g, '').slice(0, TAM.value)
+  return Array.from({ length: TAM.value }, (_, i) => v[i] ?? '')
 })
 
 function atualizar(valor: string) {
-  const limpo = valor.replace(/\D/g, '').slice(0, TAM)
+  const limpo = valor.replace(/\D/g, '').slice(0, props.maximo)
   emit('update:modelValue', limpo)
-  if (limpo.length === TAM) emit('completo', limpo)
+  if (limpo.length >= props.minimo) emit('completo', limpo)
 }
 
 function digitar(i: number, ev: Event) {
@@ -25,12 +37,12 @@ function digitar(i: number, ev: Event) {
   // colar vários de uma vez
   if (n.length > 1) {
     atualizar(digitos.value.slice(0, i).join('') + n)
-    nextTick(() => caixas.value[Math.min(TAM - 1, i + n.length)]?.focus())
+    nextTick(() => caixas.value[Math.min(TAM.value - 1, i + n.length)]?.focus())
     return
   }
   atual[i] = n
   atualizar(atual.join(''))
-  nextTick(() => caixas.value[Math.min(TAM - 1, i + 1)]?.focus())
+  nextTick(() => caixas.value[Math.min(TAM.value - 1, i + 1)]?.focus())
 }
 
 function tecla(i: number, ev: KeyboardEvent) {
@@ -45,14 +57,14 @@ function tecla(i: number, ev: KeyboardEvent) {
     }
   }
   if (ev.key === 'ArrowLeft' && i > 0) caixas.value[i - 1]?.focus()
-  if (ev.key === 'ArrowRight' && i < TAM - 1) caixas.value[i + 1]?.focus()
+  if (ev.key === 'ArrowRight' && i < TAM.value - 1) caixas.value[i + 1]?.focus()
 }
 
 function colar(ev: ClipboardEvent) {
   ev.preventDefault()
   const t = ev.clipboardData?.getData('text') ?? ''
   atualizar(t)
-  nextTick(() => caixas.value[Math.min(TAM - 1, t.replace(/\D/g, '').length)]?.focus())
+  nextTick(() => caixas.value[Math.min(TAM.value - 1, t.replace(/\D/g, '').length)]?.focus())
 }
 
 onMounted(() => nextTick(() => caixas.value[0]?.focus()))
@@ -60,12 +72,12 @@ defineExpose({ focar: () => caixas.value[0]?.focus() })
 </script>
 
 <template>
-  <div class="codigo" :class="{ ruim: erro }" @paste="colar">
+  <div class="codigo" :class="{ ruim: erro, longo: TAM > 6 }" @paste="colar">
     <input v-for="(d, i) in digitos" :key="i"
            ref="caixas"
            :value="d"
            type="text" inputmode="numeric" autocomplete="one-time-code"
-           maxlength="6"
+           :maxlength="maximo"
            @input="digitar(i, $event)"
            @keydown="tecla(i, $event)"
            @focus="($event.target as HTMLInputElement).select()" />
@@ -75,7 +87,7 @@ defineExpose({ focar: () => caixas.value[0]?.focus() })
 <style scoped>
 .codigo { display: flex; gap: 8px; justify-content: center; }
 .codigo input {
-  width: 46px; height: 56px; padding: 0; text-align: center;
+  width: 46px; height: 56px; min-width: 0; flex: 0 1 46px; padding: 0; text-align: center;
   font-variant-numeric: tabular-nums; font-size: 1.5rem; font-weight: 600;
   border: 1px solid var(--linha); border-radius: 10px;
   background: var(--carta); color: var(--tinta);
@@ -85,8 +97,11 @@ defineExpose({ focar: () => caixas.value[0]?.focus() })
 }
 .codigo.ruim input { border-color: var(--saida); background: var(--saida-fraco); }
 
-@media (max-width: 400px) {
-  .codigo { gap: 5px; }
-  .codigo input { width: 40px; height: 50px; font-size: 1.25rem; }
+.codigo.longo input { width: 40px; height: 50px; font-size: 1.25rem; }
+
+@media (max-width: 460px) {
+  .codigo { gap: 4px; }
+  .codigo input { width: 38px; height: 48px; font-size: 1.15rem; }
+  .codigo.longo input { width: 32px; height: 44px; font-size: 1rem; }
 }
 </style>

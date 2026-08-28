@@ -1,8 +1,9 @@
 <script setup lang="ts">
 const { escuroAgora, alternar } = useTema()
 const supa = useSupa()
+const api = useApi()
 
-const etapa = ref<'email' | 'codigo' | 'senha'>('email')
+const etapa = ref<'email' | 'codigo'>('email')
 const email = ref('')
 const codigo = ref('')
 const senha = ref('')
@@ -31,55 +32,58 @@ async function enviar() {
     return
   }
   carregando.value = true
-  const { error } = await supa.auth.resetPasswordForEmail(mail)
+  try {
+    // o código sai do nosso servidor, pelo Brevo
+    await api.post('/acesso/codigo', { email: mail, tipo: 'recuperacao' })
+    etapa.value = 'codigo'
+    contar()
+  } catch (e: any) { erro.value = e.message }
   carregando.value = false
-  if (error) { erro.value = error.message; return }
-  etapa.value = 'codigo'
-  contar()
-}
-
-async function conferir() {
-  erro.value = ''
-  if (codigo.value.length < 6) { erro.value = 'Digite os 6 números.'; return }
-
-  carregando.value = true
-  const { data, error } = await supa.auth.verifyOtp({
-    email: email.value.trim().toLowerCase(),
-    token: codigo.value,
-    type: 'recovery'
-  })
-  carregando.value = false
-
-  if (error) {
-    erro.value = String(error.message).toLowerCase().includes('expired')
-      ? 'Este código expirou. Peça outro.'
-      : 'Código incorreto. Confira e tente de novo.'
-    codigo.value = ''
-    return
-  }
-  if (!data.session) { erro.value = 'Não consegui validar o código.'; return }
-  etapa.value = 'senha'
 }
 
 async function salvar() {
   erro.value = ''
+  if (codigo.value.length < 6) { erro.value = 'Digite o código inteiro.'; return }
   if (senha.value.length < 8) { erro.value = 'A senha precisa ter ao menos 8 caracteres.'; return }
   if (senha.value !== senha2.value) { erro.value = 'As senhas não são iguais.'; return }
 
+  const mail = email.value.trim().toLowerCase()
   carregando.value = true
-  const { error } = await supa.auth.updateUser({ password: senha.value })
+
+  try {
+    await api.post('/acesso/confirmar', {
+      email: mail, tipo: 'recuperacao', codigo: codigo.value, senha: senha.value
+    })
+  } catch (e: any) {
+    carregando.value = false
+    erro.value = e.message
+    if (String(e.message).toLowerCase().includes('incorreto')) codigo.value = ''
+    return
+  }
+
+  const { error } = await supa.auth.signInWithPassword({
+    email: mail, password: senha.value
+  })
   carregando.value = false
-  if (error) { erro.value = error.message; return }
+
+  if (error) {
+    recado.value = 'Senha trocada. Entre com a nova.'
+    setTimeout(() => navigateTo('/login'), 1800)
+    return
+  }
   await navigateTo('/')
 }
 
 async function reenviar() {
   if (espera.value > 0) return
   erro.value = ''; recado.value = ''
-  const { error } = await supa.auth.resetPasswordForEmail(email.value.trim().toLowerCase())
-  if (error) { erro.value = error.message; return }
-  recado.value = 'Mandamos outro código.'
-  contar()
+  try {
+    await api.post('/acesso/codigo', {
+      email: email.value.trim().toLowerCase(), tipo: 'recuperacao'
+    })
+    recado.value = 'Mandamos outro código.'
+    contar()
+  } catch (e: any) { erro.value = e.message }
 }
 </script>
 
@@ -91,12 +95,16 @@ async function reenviar() {
     </button>
 
     <div class="portao-caixa">
-      <!-- ---------------- nova senha ---------------- -->
-      <template v-if="etapa === 'senha'">
+      <!-- ---------------- código e nova senha ---------------- -->
+      <template v-if="etapa === 'codigo'">
         <div class="portao-marca">Nova senha</div>
-        <div class="portao-sub">Escolha uma que você lembre</div>
+        <div class="portao-sub">
+          Se existir conta, enviamos um código para<br><strong>{{ email }}</strong>
+        </div>
 
-        <div class="campo">
+        <CampoCodigo v-model="codigo" :erro="!!erro" />
+
+        <div class="campo" style="margin-top:20px">
           <label>Nova senha</label>
           <input v-model="senha" type="password" autocomplete="new-password"
                  placeholder="ao menos 8 caracteres" />
@@ -109,27 +117,10 @@ async function reenviar() {
         </div>
 
         <div v-if="erro" class="aviso mal" style="margin-bottom:14px">{{ erro }}</div>
+        <div v-if="recado" class="aviso bem" style="margin-bottom:14px">{{ recado }}</div>
 
         <button class="btn" style="width:100%" :disabled="carregando" @click="salvar">
           {{ carregando ? 'Salvando…' : 'Salvar e entrar' }}
-        </button>
-      </template>
-
-      <!-- ---------------- código ---------------- -->
-      <template v-else-if="etapa === 'codigo'">
-        <div class="portao-marca">Confira o e-mail</div>
-        <div class="portao-sub">
-          Se existir conta, enviamos 6 números para<br><strong>{{ email }}</strong>
-        </div>
-
-        <CampoCodigo v-model="codigo" :erro="!!erro" @completo="conferir" />
-
-        <div v-if="erro" class="aviso mal" style="margin:16px 0 0">{{ erro }}</div>
-        <div v-if="recado" class="aviso bem" style="margin:16px 0 0">{{ recado }}</div>
-
-        <button class="btn" style="width:100%;margin-top:18px"
-                :disabled="carregando || codigo.length < 6" @click="conferir">
-          {{ carregando ? 'Conferindo…' : 'Continuar' }}
         </button>
 
         <div class="centro pequeno" style="margin-top:18px">
@@ -174,7 +165,7 @@ async function reenviar() {
 <style scoped>
 .botao-texto {
   background: none; border: 0; padding: 0; font: inherit;
-  color: var(--azul-forte); text-decoration: underline; cursor: pointer;
+  color: var(--laranja); text-decoration: underline; cursor: pointer;
 }
 .botao-texto.mudo { color: var(--tinta-45); }
 </style>

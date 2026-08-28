@@ -21,7 +21,7 @@ const abaSino = ref(false)
 const abaPerfil = ref(false)
 
 // telas de acesso ocupam a pagina inteira, sem menu
-const SEM_MENU = ['/login', '/criar-conta', '/recuperar', '/nova-senha']
+const SEM_MENU = ['/login', '/criar-conta', '/recuperar']
 const semMenu = computed(() => SEM_MENU.includes(rota.path))
 
 function temRecurso(chave?: string) {
