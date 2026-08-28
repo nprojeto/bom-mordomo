@@ -19,7 +19,11 @@ export default defineNuxtRouteMiddleware(async (para) => {
   const publica = PUBLICAS.includes(para.path)
 
   if (!logado && !publica) return navigateTo('/login')
-  if (logado && publica) return navigateTo('/')
+
+  // Quem já está entrado e abre /login vê um aviso de quem está logado,
+  // com a opção de trocar de conta. Mandar direto para o app faz parecer
+  // que o sistema entrou com a conta errada.
+  if (logado && publica && para.path !== '/login') return navigateTo('/')
   if (!logado) return
 
   // Tela fora do plano: em vez de erro, mostramos o que resolveria

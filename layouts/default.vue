@@ -33,6 +33,7 @@ function temRecurso(chave?: string) {
 
 const itens = computed(() => [
   { para: '/',            ic: 'grid_view',       txt: 'Painel',     curto: 'Painel' },
+  { para: '/dash',        ic: 'monitoring',      txt: 'Dash',       curto: 'Dash' },
   { para: '/moderando',   ic: 'speed',           txt: 'Moderando',  curto: 'Moderar', rec: 'moderando' },
   { para: '/calendario',  ic: 'calendar_month',  txt: 'Calendário', curto: 'Agenda',  rec: 'calendario' },
   { para: '/contas',      ic: 'receipt_long',    txt: 'Contas',     curto: 'Contas',  rec: 'contas' },
@@ -45,7 +46,7 @@ const itens = computed(() => [
 ].map((i: any) => ({ ...i, bloqueado: !temRecurso(i.rec) })))
 
 // no celular cabem poucos: os quatro do dia a dia mais o "Mais"
-const ATALHOS = ['/', '/calendario', '/gastos', '/moderando']
+const ATALHOS = ['/', '/dash', '/gastos', '/calendario']
 const principais = computed(() =>
   ATALHOS.map((r) => itens.value.find((i: any) => i.para === r)).filter(Boolean) as any[])
 const outros = computed(() =>
@@ -143,29 +144,17 @@ async function sair() {
   <div v-if="semMenu"><slot /></div>
 
   <div v-else class="moldura">
-    <aside class="barra">
-      <div class="barra-topo">
-        <img :src="arquivo('logo.png')" alt="Sow Well Everyday" class="marca-logo" />
+    <div class="coluna">
+      <!-- barra de cima: sino e perfil -->
+      <header class="cabecalho">
+        <NuxtLink to="/" class="cabecalho-marca">
+          <img :src="arquivo('logo.png')" alt="Sow Well Everyday" />
+        </NuxtLink>
+
         <NuxtLink to="/conta" class="familia-chip">
           <img v-if="foto" :src="foto" alt="" />
           <span class="marca-familia">{{ familia || 'Everyday' }}</span>
         </NuxtLink>
-      </div>
-
-      <nav class="menu">
-        <NuxtLink v-for="i in itens" :key="i.para" :to="i.para"
-                  :class="{ travado: i.bloqueado }"
-                  @click="i.bloqueado && ($event.preventDefault(), explicar(i, $event))">
-          <span class="ic"><i class="mi">{{ i.ic }}</i></span>{{ i.txt }}
-          <i v-if="i.bloqueado" class="mi cadeado">lock</i>
-        </NuxtLink>
-      </nav>
-    </aside>
-
-    <div class="coluna">
-      <!-- barra de cima: sino e perfil -->
-      <header class="cabecalho">
-        <img :src="arquivo('logo.png')" alt="" class="cabecalho-logo" />
 
         <span class="espaco"></span>
 
@@ -243,6 +232,10 @@ async function sair() {
 
           <div class="perfil-risco"></div>
 
+          <NuxtLink to="/login" class="perfil-item" @click="abaPerfil = false">
+            <i class="mi">switch_account</i>Trocar de conta
+          </NuxtLink>
+
           <button class="perfil-item saida" @click="sair">
             <i class="mi">logout</i>Sair da conta
           </button>
@@ -259,7 +252,19 @@ async function sair() {
       </main>
     </div>
 
-    <!-- menu de baixo, no celular -->
+    <!-- barra flutuante: no computador cabe tudo -->
+    <nav class="doca">
+      <NuxtLink v-for="i in itens" :key="i.para" :to="i.para"
+                :class="{ travado: i.bloqueado }"
+                :title="i.txt"
+                @click="i.bloqueado && ($event.preventDefault(), explicar(i, $event))">
+        <span class="ic"><i class="mi">{{ i.ic }}</i></span>
+        <span class="txt">{{ i.txt }}</span>
+        <i v-if="i.bloqueado" class="mi trava">lock</i>
+      </NuxtLink>
+    </nav>
+
+    <!-- no celular só os principais, com o Mais -->
     <nav class="menu-mobile">
       <NuxtLink v-for="i in principais" :key="i.para" :to="i.para"
                 :class="{ travado: i.bloqueado, destaque: i.para === '/gastos' }"
