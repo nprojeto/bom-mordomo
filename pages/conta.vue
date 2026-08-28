@@ -6,6 +6,7 @@ const carregando = ref(true)
 const erro = ref('')
 const recado = ref('')
 const nomeCasa = ref('')
+const fotoCasa = ref<string | null>(null)
 const novoEmail = ref('')
 const convidando = ref(false)
 const assinando = ref(false)
@@ -45,6 +46,7 @@ async function carregar() {
     const [c, a] = await Promise.all([api.get('/conta'), api.get('/assinatura')])
     dados.value = { ...c, assinatura: a }
     nomeCasa.value = c?.conta?.nome ?? ''
+    fotoCasa.value = c?.conta?.foto ?? null
     try { pagamentos.value = await api.get('/assinatura/pagamentos') ?? [] } catch { /* opcional */ }
   } catch (e: any) {
     erro.value = e.message
@@ -56,8 +58,8 @@ async function carregar() {
 async function salvarNome() {
   erro.value = ''
   try {
-    await api.patch('/conta', { nome: nomeCasa.value })
-    recado.value = 'Nome salvo.'
+    await api.patch('/conta', { nome: nomeCasa.value, foto: fotoCasa.value })
+    recado.value = 'Família salva.'
     setTimeout(() => (recado.value = ''), 2500)
     await carregar()
   } catch (e: any) { erro.value = e.message }
@@ -163,6 +165,13 @@ onMounted(async () => {
               <template v-if="plano === 'teste'">
                 Teste até {{ dataBr(dados.conta.teste_ate) }}
               </template>
+
+<style scoped>
+.foto-familia {
+  width: 84px; height: 84px; border-radius: 50%; object-fit: cover;
+  border: 2px solid var(--linha);
+}
+</style>
               <template v-else-if="dados.conta.assinatura_ate && !semPrazo">
                 Válida até {{ dataBr(dados.conta.assinatura_ate) }}
               </template>
@@ -219,13 +228,20 @@ onMounted(async () => {
       <!-- nome da casa -->
       <div class="cartao" style="margin-bottom:16px">
         <h2 style="margin-bottom:4px">Família</h2>
-        <p class="pequeno mudo" style="margin:0 0 12px">
-          É o nome que aparece no alto do menu.
+        <p class="pequeno mudo" style="margin:0 0 16px">
+          O nome e a foto aparecem no alto do menu e no seu perfil.
         </p>
+
+        <CampoFoto v-if="dados.sou_dono" v-model="fotoCasa" :nome="nomeCasa"
+                   style="margin-bottom:16px" />
+        <div v-else-if="fotoCasa" style="margin-bottom:16px">
+          <img :src="fotoCasa" alt="" class="foto-familia" />
+        </div>
+
         <div class="linha-flex">
           <input v-model="nomeCasa" :disabled="!dados.sou_dono"
                  placeholder="Família Silva" />
-          <button v-if="dados.sou_dono" class="btn claro" @click="salvarNome">Salvar</button>
+          <button v-if="dados.sou_dono" class="btn" @click="salvarNome">Salvar</button>
         </div>
         <div v-if="!dados.sou_dono" class="pequeno mudo" style="margin-top:6px">
           Só um mordomo responsável pode alterar.

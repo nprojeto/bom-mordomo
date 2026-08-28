@@ -11,6 +11,7 @@ const ehAdmin = ref(false)
 const recursos = ref<Record<string, boolean>>({})
 const catalogo = ref<any[]>([])
 const servidorVelho = ref('')
+const foto = ref<string | null>(null)
 
 const avisos = ref<any[]>([])
 const urgentes = ref(0)
@@ -57,10 +58,13 @@ const doPerfil = [
   { para: '/ajustes', ic: 'tune',              txt: 'Ajustes' },
 ]
 
+// Enquanto os dados não chegam, o e-mail já basta para as iniciais —
+// mostrar "?" para quem está logado passa impressão de erro.
 const iniciais = computed(() => {
-  const base = (nome.value || email.value || '?').trim()
-  return base.split(/[\s._-]+/).filter(Boolean).slice(0, 2)
-    .map((p) => p[0]).join('').toUpperCase() || '?'
+  const base = (nome.value || familia.value || email.value || '').trim()
+  if (!base) return '·'
+  return base.split(/[\s._@-]+/).filter(Boolean).slice(0, 2)
+    .map((p) => p[0]).join('').toUpperCase()
 })
 
 function fecharTudo() { abaSino.value = false; abaPerfil.value = false; gaveta.value = false }
@@ -116,6 +120,7 @@ onMounted(async () => {
     const c = await api.get('/conta')
     ehAdmin.value = !!c?.sou_admin
     familia.value = c?.conta?.nome ?? ''
+    foto.value = c?.conta?.foto ?? null
     nome.value = c?.eu_nome ?? ''
     recursos.value = c?.plano?.recursos ?? {}
     catalogo.value = c?.recursos_catalogo ?? []
@@ -141,7 +146,10 @@ async function sair() {
     <aside class="barra">
       <div class="barra-topo">
         <img :src="arquivo('logo.png')" alt="Sow Well Everyday" class="marca-logo" />
-        <span class="marca-familia">{{ familia || 'Everyday' }}</span>
+        <NuxtLink to="/conta" class="familia-chip">
+          <img v-if="foto" :src="foto" alt="" />
+          <span class="marca-familia">{{ familia || 'Everyday' }}</span>
+        </NuxtLink>
       </div>
 
       <nav class="menu">
@@ -171,10 +179,11 @@ async function sair() {
             </span>
           </button>
 
-          <button class="avatar" :class="{ ativo: abaPerfil }"
+          <button class="avatar" :class="{ ativo: abaPerfil, comFoto: !!foto }"
                   aria-label="Seu perfil"
                   @click="abaPerfil = !abaPerfil; abaSino = false">
-            {{ iniciais }}
+            <img v-if="foto" :src="foto" alt="" />
+            <template v-else>{{ iniciais }}</template>
           </button>
         </div>
 
@@ -206,7 +215,10 @@ async function sair() {
         <div v-if="abaPerfil" class="cortina" @click="fecharTudo"></div>
         <div v-if="abaPerfil" class="painel-canto perfil">
           <div class="perfil-quem">
-            <span class="avatar grande">{{ iniciais }}</span>
+            <span class="avatar grande" :class="{ comFoto: !!foto }">
+              <img v-if="foto" :src="foto" alt="" />
+              <template v-else>{{ iniciais }}</template>
+            </span>
             <span>
               <strong>{{ nome || 'Você' }}</strong>
               <span class="pequeno mudo">{{ email }}</span>

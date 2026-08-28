@@ -7,6 +7,7 @@ const rota = useRoute()
 const etapa = ref<'dados' | 'codigo'>('dados')
 const nome = ref('')
 const casa = ref('')
+const foto = ref<string | null>(null)
 const email = ref(String(rota.query.email ?? ''))
 const senha = ref('')
 const senha2 = ref('')
@@ -59,7 +60,8 @@ async function criar() {
   try {
     await api.post('/acesso/codigo', {
       email: mail, tipo: 'cadastro',
-      nome: nome.value.trim(), casa: casa.value.trim() || null
+      nome: nome.value.trim(), casa: casa.value.trim() || null,
+      foto: foto.value
     })
     etapa.value = 'codigo'
     contar()
@@ -172,6 +174,11 @@ async function reenviar() {
         <div v-if="!convidado" class="campo">
           <label>Nome da família <span class="mudo">(opcional)</span></label>
           <input v-model="casa" placeholder="Família Silva" />
+        </div>
+
+        <div v-if="!convidado" class="campo">
+          <label>Foto da família <span class="mudo">(opcional)</span></label>
+          <CampoFoto v-model="foto" :nome="casa || nome" :tamanho="72" />
         </div>
 
         <div class="campo">
