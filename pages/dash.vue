@@ -5,19 +5,23 @@ const dados = ref<any>(null)
 const carregando = ref(true)
 const erro = ref('')
 
-const dias = ref(30)
 const mostrar = ref<'ambos' | 'receita' | 'despesa'>('ambos')
 const acumulado = ref(false)
+const barras = ref(true)
 const detalhar = ref(false)          // por categoria ou só os totais
 const escondidas = ref<string[]>([])
 
-const PERIODOS = [7, 15, 30, 60, 90, 120]
+const inicio = new Date(new Date(hojeISO() + 'T12:00:00').getTime() - 29 * 86400000)
+const de = ref(inicio.toISOString().slice(0, 10))
+const ate = ref(hojeISO())
+
+const dias = computed(() => Number(dados.value?.dias ?? 30))
 
 async function carregar() {
   carregando.value = true
   erro.value = ''
   try {
-    dados.value = await api.get(`/dash?dias=${dias.value}`)
+    dados.value = await api.get(`/dash?de=${de.value}&ate=${ate.value}`)
   } catch (e: any) {
     erro.value = e.message
   } finally {
@@ -25,8 +29,9 @@ async function carregar() {
   }
 }
 
-function trocarPeriodo(d: number) {
-  dias.value = d
+function mudarPeriodo(p: { de: string; ate: string }) {
+  de.value = p.de
+  ate.value = p.ate
   carregar()
 }
 
@@ -83,7 +88,7 @@ onMounted(carregar)
   <div>
     <div class="topo">
       <h1>Dash</h1>
-      <p>Como o dinheiro se moveu, dia a dia.</p>
+      <p>Quanto entra e quanto sai em cada dia — e com o quê.</p>
     </div>
 
     <div v-if="erro" class="aviso mal entre" style="margin-bottom:14px">
@@ -93,18 +98,10 @@ onMounted(carregar)
 
     <!-- período -->
     <div class="cartao larga" style="margin-bottom:14px">
-      <div class="entre" style="flex-wrap:wrap;gap:12px">
-        <div>
-          <div class="rotulo" style="margin-bottom:7px">Período</div>
-          <div class="linha-flex" style="flex-wrap:wrap">
-            <button v-for="d in PERIODOS" :key="d"
-                    class="btn mini" :class="dias === d ? '' : 'claro'"
-                    @click="trocarPeriodo(d)">
-              {{ d }} dias
-            </button>
-          </div>
-        </div>
+      <SeletorPeriodo :de="de" :ate="ate" @mudou="mudarPeriodo" />
 
+      <div class="linha-flex" style="flex-wrap:wrap;gap:16px;margin-top:18px;
+                                     padding-top:16px;border-top:1px solid var(--linha)">
         <div>
           <div class="rotulo" style="margin-bottom:7px">Mostrar</div>
           <div class="linha-flex" style="flex-wrap:wrap">
@@ -126,6 +123,10 @@ onMounted(carregar)
                     @click="detalhar = true">Por categoria</button>
             <button class="btn mini" :class="acumulado ? '' : 'claro'"
                     @click="acumulado = !acumulado">Acumulado</button>
+            <button v-if="!acumulado" class="btn mini" :class="barras ? '' : 'claro'"
+                    @click="barras = !barras">
+              {{ barras ? 'Barras' : 'Linhas' }}
+            </button>
           </div>
         </div>
       </div>
@@ -155,9 +156,54 @@ onMounted(carregar)
           <div class="pequeno mudo">nos últimos {{ dias }} dias</div>
         </div>
         <div class="cartao">
-          <div class="rotulo">Categorias</div>
-          <div class="selo-valor">{{ dados.series.length }}</div>
-          <div class="pequeno mudo">com movimento no período</div>
+          <div class="rotulo">Dias sem gastar</div>
+          <div class="selo-valor">{{ dados.resumo.dias_sem_gastar }}</div>
+          <div class="pequeno mudo">de {{ dias }} dias</div>
+        </div>
+      </div>
+
+      <!-- os dias que mais pesaram -->
+      <div class="grade g2" style="margin-bottom:14px">
+        <div v-if="dados.resumo.dia_maior_saida" class="cartao">
+          <div class="rotulo">Dia que mais gastou</div>
+          <div class="entre" style="margin-top:4px">
+            <div>
+              <div class="selo-valor saida">
+                {{ dinheiro(dados.resumo.dia_maior_saida.valor) }}
+              </div>
+              <div class="pequeno mudo">
+                {{ dataBr(dados.resumo.dia_maior_saida.data) }}
+              </div>
+            </div>
+            <div v-if="dados.resumo.dia_maior_saida.categoria" class="direita">
+              <span class="linha-flex" style="gap:7px">
+                <i class="ponto" :style="{ background: dados.resumo.dia_maior_saida.cor }"></i>
+                <span class="pequeno">{{ dados.resumo.dia_maior_saida.categoria }}</span>
+              </span>
+              <div class="pequeno mudo">puxou o dia</div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="dados.resumo.dia_maior_entrada" class="cartao">
+          <div class="rotulo">Dia que mais recebeu</div>
+          <div class="entre" style="margin-top:4px">
+            <div>
+              <div class="selo-valor entrada">
+                {{ dinheiro(dados.resumo.dia_maior_entrada.valor) }}
+              </div>
+              <div class="pequeno mudo">
+                {{ dataBr(dados.resumo.dia_maior_entrada.data) }}
+              </div>
+            </div>
+            <div v-if="dados.resumo.dia_maior_entrada.categoria" class="direita">
+              <span class="linha-flex" style="gap:7px">
+                <i class="ponto" :style="{ background: dados.resumo.dia_maior_entrada.cor }"></i>
+                <span class="pequeno">{{ dados.resumo.dia_maior_entrada.categoria }}</span>
+              </span>
+              <div class="pequeno mudo">puxou o dia</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -166,7 +212,7 @@ onMounted(carregar)
         <div class="entre" style="margin-bottom:14px;flex-wrap:wrap;gap:10px">
           <h2>{{ acumulado ? 'Acumulado no período' : 'Movimento por dia' }}</h2>
           <span class="pequeno mudo">
-            {{ dataBr(dados.de) }} a {{ dataBr(dados.ate) }}
+            {{ dias }} dias · pelo dia em que aconteceu
           </span>
         </div>
 
@@ -175,12 +221,14 @@ onMounted(carregar)
           Nada lançado neste período.
         </div>
 
+
+
         <div v-else-if="!visiveis.length" class="vazio">
           Nenhuma linha selecionada.
         </div>
 
         <GraficoLinhas v-else :datas="dados.datas" :series="visiveis"
-                       :acumulado="acumulado" :altura="320" />
+                       :acumulado="acumulado" :barras="barras" :altura="320" />
 
         <!-- legenda, que também liga e desliga as linhas -->
         <div v-if="series.length" class="legenda">

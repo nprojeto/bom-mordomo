@@ -4,7 +4,8 @@ const props = withDefaults(defineProps<{
   series: { nome: string; cor: string; pontos: number[] }[]
   altura?: number
   acumulado?: boolean
-}>(), { altura: 300, acumulado: false })
+  barras?: boolean
+}>(), { altura: 300, acumulado: false, barras: false })
 
 const L = 58   // espaço para os valores à esquerda
 const R = 14
@@ -42,6 +43,12 @@ function caminho(valores: number[]) {
 }
 
 // linhas horizontais de referência
+// nas barras cada série ganha sua fatia do dia
+const larguraBarra = computed(() => {
+  const n = Math.max(1, dados.value.length)
+  return Math.max(1.5, Math.min(14, (passoX.value * 0.72) / n))
+})
+
 const marcas = computed(() => {
   const n = 4
   return Array.from({ length: n + 1 }, (_, i) => {
@@ -102,12 +109,24 @@ const noFoco = computed(() => {
       <line v-if="foco !== null" :x1="x(foco)" :x2="x(foco)"
             :y1="T" :y2="alt - B" class="gr-foco" />
 
+      <!-- barras: melhor para ver o pico de cada dia -->
+      <template v-if="barras && !acumulado">
+        <g v-for="(s, si) in dados" :key="'b' + si">
+          <rect v-for="(v, i) in s.valores" :key="i"
+                v-show="v > 0"
+                :x="x(i) - larguraBarra / 2 + (si - (dados.length - 1) / 2) * larguraBarra"
+                :y="y(v)" :width="larguraBarra"
+                :height="Math.max(1, y(0) - y(v))"
+                :style="{ fill: s.cor }" class="gr-barra" />
+        </g>
+      </template>
+
       <!-- linhas -->
-      <path v-for="(s, i) in dados" :key="i" :d="caminho(s.valores)"
+      <path v-else v-for="(s, i) in dados" :key="i" :d="caminho(s.valores)"
             class="gr-linha" :style="{ stroke: s.cor }" />
 
       <!-- pontos do dia em foco -->
-      <template v-if="foco !== null">
+      <template v-if="foco !== null && !(barras && !acumulado)">
         <circle v-for="(s, i) in dados" :key="'p' + i"
                 v-show="s.valores[foco] > 0"
                 :cx="x(foco)" :cy="y(s.valores[foco])" r="4"
@@ -143,6 +162,7 @@ const noFoco = computed(() => {
   fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round;
 }
 .gr-ponto { stroke: var(--carta); stroke-width: 2; }
+.gr-barra { rx: 1.5; }
 
 .gr-caixa {
   position: absolute; top: 8px; right: 8px;

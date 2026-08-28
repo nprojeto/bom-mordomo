@@ -46,7 +46,7 @@ const itens = computed(() => [
 ].map((i: any) => ({ ...i, bloqueado: !temRecurso(i.rec) })))
 
 // no celular cabem poucos: os quatro do dia a dia mais o "Mais"
-const ATALHOS = ['/', '/dash', '/gastos', '/calendario']
+const ATALHOS = ['/', '/dash', '/gastos', '/moderando']
 const principais = computed(() =>
   ATALHOS.map((r) => itens.value.find((i: any) => i.para === r)).filter(Boolean) as any[])
 const outros = computed(() =>
@@ -252,20 +252,8 @@ async function sair() {
       </main>
     </div>
 
-    <!-- barra flutuante: no computador cabe tudo -->
+    <!-- barra flutuante: a mesma no computador e no celular -->
     <nav class="doca">
-      <NuxtLink v-for="i in itens" :key="i.para" :to="i.para"
-                :class="{ travado: i.bloqueado }"
-                :title="i.txt"
-                @click="i.bloqueado && ($event.preventDefault(), explicar(i, $event))">
-        <span class="ic"><i class="mi">{{ i.ic }}</i></span>
-        <span class="txt">{{ i.txt }}</span>
-        <i v-if="i.bloqueado" class="mi trava">lock</i>
-      </NuxtLink>
-    </nav>
-
-    <!-- no celular só os principais, com o Mais -->
-    <nav class="menu-mobile">
       <NuxtLink v-for="i in principais" :key="i.para" :to="i.para"
                 :class="{ travado: i.bloqueado, destaque: i.para === '/gastos' }"
                 @click="tocarMobile(i, $event)">

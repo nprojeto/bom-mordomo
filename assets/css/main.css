@@ -97,8 +97,9 @@
 [data-tema="escuro"] .barra-meta { background: #2A2E36; }
 [data-tema="escuro"] .menu a.router-link-active { background: #24282F; color: #fff; }
 [data-tema="escuro"] .gaveta-grade a { background: #24282F; }
+[data-tema="escuro"] .doca { background: #1E2228; border-color: #2A2E36; }
+[data-tema="escuro"] .doca a.destaque .ic { border-color: #1E2228; }
 [data-tema="escuro"] .pilula.p { background: #24282F; }
-[data-tema="escuro"] .menu-mobile { background: var(--carta); }
 [data-tema="escuro"] .portao-caixa { background: var(--carta); }
 [data-tema="escuro"] .eti.pendente, [data-tema="escuro"] .eti.cancelado {
   background: #24282F; color: var(--tinta-70);
@@ -151,38 +152,53 @@ a { color: inherit; }
 .coluna { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 
 /* ------------------------------------------------------------- doca
-   Barra flutuante no rodapé, centralizada. Substitui o menu lateral:
-   deixa a tela inteira para o conteúdo e fica igual no celular. */
+   Barra flutuante no rodapé, igual no computador e no celular.
+   O botão de lançar gasto fica maior: é o mais usado do dia a dia. */
 .doca {
-  position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
-  z-index: 45; display: flex; align-items: center; gap: 2px;
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  z-index: 45; display: flex; align-items: flex-end; gap: 4px;
   background: var(--carta); border: 1px solid var(--linha);
-  border-radius: 999px; padding: 7px;
-  box-shadow: 0 10px 34px -10px rgba(22,32,46,.3), 0 2px 8px rgba(22,32,46,.06);
-  max-width: calc(100vw - 32px); overflow-x: auto;
-  scrollbar-width: none;
+  border-radius: 999px; padding: 8px 10px;
+  box-shadow: 0 12px 38px -10px rgba(22,32,46,.34), 0 2px 8px rgba(22,32,46,.07);
 }
-.doca::-webkit-scrollbar { display: none; }
 
-.doca a {
-  display: grid; place-items: center; gap: 3px;
-  padding: 8px 12px; border-radius: 999px; text-decoration: none;
+.doca a, .doca .mais {
+  display: grid; place-items: center; gap: 4px;
+  padding: 9px 14px; border-radius: 999px; text-decoration: none;
   color: var(--tinta-45); transition: background .15s, color .15s;
-  position: relative; min-width: 62px;
+  position: relative; min-width: 74px;
+  background: none; border: 0; cursor: pointer; font-family: inherit;
 }
-.doca a:hover { background: var(--papel); color: var(--tinta); }
-.doca a.router-link-active { background: var(--laranja); color: #fff; }
+.doca a:hover, .doca .mais:hover { background: var(--papel); color: var(--tinta); }
+.doca a.router-link-active { color: var(--laranja); }
+.doca a.router-link-active .ic { background: var(--laranja-fundo); }
+.doca .mais.aberto { color: var(--laranja); }
 
-.doca .ic { display: grid; place-items: center; }
-.doca .ic .mi { font-size: 21px; vertical-align: 0; }
+.doca .ic {
+  width: 38px; height: 38px; border-radius: 12px;
+  display: grid; place-items: center; transition: background .15s;
+}
+.doca .ic .mi { font-size: 23px; vertical-align: 0; }
 .doca .txt {
-  font-size: .63rem; font-weight: 700; letter-spacing: -.01em;
-  white-space: nowrap;
+  font-size: .68rem; font-weight: 700; letter-spacing: -.01em; white-space: nowrap;
 }
+
 .doca a.travado { opacity: .45; }
-.doca a .trava {
-  position: absolute; top: 3px; right: 7px; font-size: 11px;
+.doca a .trava { position: absolute; top: 4px; right: 10px; font-size: 12px; }
+
+/* lançar gasto: maior e elevado */
+.doca a.destaque { color: var(--laranja); }
+.doca a.destaque .ic {
+  width: 60px; height: 60px; border-radius: 50%;
+  background: var(--laranja); color: #fff; margin-top: -26px;
+  border: 4px solid var(--carta);
+  box-shadow: 0 8px 20px -5px rgba(255,138,0,.55);
 }
+.doca a.destaque .ic .mi { font-size: 28px; }
+.doca a.destaque .txt { margin-top: -3px; }
+.doca a.destaque:hover { background: none; }
+.doca a.destaque:hover .ic { filter: brightness(.94); }
+.doca a.destaque.router-link-active .ic { background: var(--laranja-forte); }
 
 /* ------------------------------------------------- coluna e cabeçalho */
 .coluna { flex: 1; min-width: 0; display: flex; flex-direction: column; }
@@ -564,7 +580,6 @@ input:disabled, select:disabled { background: var(--papel); color: var(--tinta-4
 }
 
 /* --------------------------------------------------------- mobile */
-.menu-mobile { display: none; }
 
 @media (max-width: 900px) {
   .g4 { grid-template-columns: repeat(2, 1fr); }
@@ -578,9 +593,6 @@ input:disabled, select:disabled { background: var(--papel); color: var(--tinta-4
 
   .barra { display: none; }
   .palco { padding: 14px 12px 88px; }
-
-  /* no celular a barra de baixo já cumpre o papel */
-  .doca { display: none; }
 
   .cabecalho { padding: 8px 12px; min-height: 56px; gap: 8px; }
   .cabecalho-marca img { height: 26px; }
@@ -640,40 +652,20 @@ input:disabled, select:disabled { background: var(--papel); color: var(--tinta-4
   .grade.larga { grid-template-columns: 1fr; }
   .larga { grid-column: 1 / -1; }
 
-  .menu-mobile {
-    display: grid; grid-template-columns: repeat(5, 1fr); align-items: end;
-    position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
-    background: var(--carta); border-top: 1px solid var(--linha);
-    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
-    box-shadow: 0 -4px 20px -8px rgba(22,32,46,.18);
+  .doca {
+    left: 10px; right: 10px; bottom: 10px; transform: none;
+    justify-content: space-around; padding: 7px 6px;
+    padding-bottom: calc(7px + env(safe-area-inset-bottom));
+    border-radius: 22px;
   }
-  .menu-mobile a, .menu-mobile .mais {
-    display: grid; place-items: center; gap: 2px; padding: 5px 2px;
-    text-decoration: none; color: var(--tinta-45); font-size: .56rem;
-    font-weight: 600; background: none; border: 0; cursor: pointer;
-    font-family: inherit;
+  .doca a, .doca .mais { min-width: 0; padding: 7px 6px; gap: 3px; }
+  .doca .ic { width: 32px; height: 32px; border-radius: 10px; }
+  .doca .ic .mi { font-size: 20px; }
+  .doca .txt { font-size: .58rem; }
+  .doca a.destaque .ic {
+    width: 52px; height: 52px; margin-top: -24px; border-width: 3px;
   }
-  .menu-mobile .ic {
-    width: 30px; height: 30px; border-radius: 9px;
-    display: grid; place-items: center;
-  }
-  .menu-mobile .ic .mi { font-size: 21px; vertical-align: 0; }
-  .menu-mobile a.router-link-active { color: var(--azul); }
-  .menu-mobile a.router-link-active .ic { background: var(--azul-suave); }
-  .menu-mobile a.travado { opacity: .42; }
-  .menu-mobile .mais.aberto { color: var(--azul); }
-
-  /* o de lançar gasto é o mais usado: fica maior e em destaque */
-  .menu-mobile a.destaque { color: var(--azul); position: relative; }
-  .menu-mobile a.destaque .ic {
-    width: 52px; height: 52px; border-radius: 50%;
-    background: var(--azul); color: #fff; margin-top: -22px;
-    box-shadow: 0 6px 16px -4px rgba(10,78,145,.5);
-    border: 3px solid var(--carta);
-  }
-  .menu-mobile a.destaque .ic .mi { font-size: 26px; }
-  .menu-mobile a.destaque .txt { margin-top: -2px; font-weight: 700; }
-  .menu-mobile a.destaque.router-link-active .ic { background: var(--azul-forte); }
+  .doca a.destaque .ic .mi { font-size: 25px; }
 
   /* gaveta com o resto das telas */
   .gaveta-fundo {
