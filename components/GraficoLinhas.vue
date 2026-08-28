@@ -57,13 +57,17 @@ const marcas = computed(() => {
   })
 })
 
-// só algumas datas no eixo, senão vira borrão
+// Todos os dias no eixo quando cabem; acima disso as datas se
+// sobrepõem e não se lê nada, então mostramos uma a cada N.
 const rotulos = computed(() => {
   const n = props.datas.length
-  const cada = Math.max(1, Math.ceil(n / 8))
-  return props.datas.map((d, i) => ({ d, i }))
-    .filter(({ i }) => i % cada === 0 || i === n - 1)
+  const cabem = Math.floor((larg - L - R) / 34)
+  const cada = Math.max(1, Math.ceil(n / cabem))
+  return props.datas.map((d, i) => ({ d, i, ultimo: i === n - 1 }))
+    .filter(({ i, ultimo }) => i % cada === 0 || ultimo)
 })
+
+const rotuloCurto = computed(() => props.datas.length > 45)
 
 const foco = ref<number | null>(null)
 const area = ref<SVGSVGElement | null>(null)
@@ -80,6 +84,7 @@ const curto = (d: string) => {
   const [, m, dia] = String(d).split('-')
   return `${dia}/${m}`
 }
+const curtinho = (d: string) => String(d).split('-')[2]
 
 const noFoco = computed(() => {
   if (foco.value === null) return []
@@ -122,8 +127,14 @@ const noFoco = computed(() => {
       </template>
 
       <!-- linhas -->
-      <path v-else v-for="(s, i) in dados" :key="i" :d="caminho(s.valores)"
-            class="gr-linha" :style="{ stroke: s.cor }" />
+      <template v-else>
+        <g v-for="(s, si) in dados" :key="si">
+          <path :d="caminho(s.valores)" class="gr-linha" :style="{ stroke: s.cor }" />
+          <circle v-for="(v, i) in s.valores" :key="i" v-show="v > 0"
+                  :cx="x(i)" :cy="y(v)" r="2.6"
+                  :style="{ fill: s.cor }" class="gr-marca" />
+        </g>
+      </template>
 
       <!-- pontos do dia em foco -->
       <template v-if="foco !== null && !(barras && !acumulado)">
@@ -133,9 +144,16 @@ const noFoco = computed(() => {
                 :style="{ fill: s.cor }" class="gr-ponto" />
       </template>
 
+      <!-- marquinhas de cada dia -->
+      <line v-for="(d, i) in datas" :key="'m' + i"
+            :x1="x(i)" :x2="x(i)" :y1="alt - B" :y2="alt - B + 4"
+            class="gr-tique" />
+
       <!-- datas -->
-      <text v-for="r in rotulos" :key="r.i" :x="x(r.i)" :y="alt - 10"
-            class="gr-data" text-anchor="middle">{{ curto(r.d) }}</text>
+      <text v-for="r in rotulos" :key="r.i" :x="x(r.i)" :y="alt - 9"
+            class="gr-data" text-anchor="middle">
+        {{ rotuloCurto ? curtinho(r.d) : curto(r.d) }}
+      </text>
     </svg>
 
     <div v-if="foco !== null && noFoco.length" class="gr-caixa">
@@ -156,13 +174,15 @@ const noFoco = computed(() => {
 .gr-grade { stroke: var(--linha); stroke-width: 1; }
 .gr-foco { stroke: var(--tinta-45); stroke-width: 1; stroke-dasharray: 3 3; }
 .gr-valor { fill: var(--tinta-45); font-size: 11px; text-anchor: end; }
-.gr-data { fill: var(--tinta-45); font-size: 11px; }
+.gr-data { fill: var(--tinta-45); font-size: 10.5px; }
+.gr-tique { stroke: var(--linha); stroke-width: 1; }
 
 .gr-linha {
   fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round;
 }
 .gr-ponto { stroke: var(--carta); stroke-width: 2; }
 .gr-barra { rx: 1.5; }
+.gr-marca { stroke: var(--carta); stroke-width: 1.5; }
 
 .gr-caixa {
   position: absolute; top: 8px; right: 8px;

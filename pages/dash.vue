@@ -7,7 +7,7 @@ const erro = ref('')
 
 const mostrar = ref<'ambos' | 'receita' | 'despesa'>('ambos')
 const acumulado = ref(false)
-const barras = ref(true)
+const barras = ref(false)
 const detalhar = ref(false)          // por categoria ou só os totais
 const escondidas = ref<string[]>([])
 
