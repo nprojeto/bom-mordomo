@@ -340,7 +340,7 @@ defineExpose({ editar, novoManual, carregarApoio })
           <button class="btn claro" @click="interpretar">Ler</button>
           <button class="btn claro" @click="novoManual">À mão</button>
         </div>
-        <div class="pequeno mudo" style="margin-top:9px">
+        <div v-if="!form && !texto" class="pequeno mudo" style="margin-top:9px">
           <em>{{ exemplos.join(' · ') }}</em>
         </div>
       </div>
@@ -512,7 +512,7 @@ defineExpose({ editar, novoManual, carregarApoio })
 .resumo-voz .selo-valor { font-size: 1.7rem; line-height: 1.1; }
 
 .botao-voz {
-  width: 88px; height: 88px; border-radius: 50%;
+  width: 72px; height: 72px; border-radius: 50%;
   border: 2px solid var(--azul); background: var(--azul); color: #fff;
   display: inline-grid; place-items: center; cursor: pointer; transition: .2s;
   box-shadow: 0 8px 24px -10px rgba(11,114,206,.35);
@@ -525,7 +525,7 @@ defineExpose({ editar, novoManual, carregarApoio })
   box-shadow: none; font-size: 1.6rem;
 }
 .botao-voz.travado:hover { background: var(--linha); }
-.botao-voz .mi { font-size: 38px; vertical-align: 0; }
+.botao-voz .mi { font-size: 32px; vertical-align: 0; }
 .botao-voz.ativo {
   background: var(--saida); border-color: var(--saida);
   animation: pulso 1.4s ease-in-out infinite;

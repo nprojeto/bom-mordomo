@@ -47,9 +47,10 @@ const itens = computed(() => [
 ].map((i: any) => ({ ...i, bloqueado: !temRecurso(i.rec) })))
 
 // no celular cabem poucos: os quatro do dia a dia mais o "Mais"
-// Ordem da barra: Painel, Agenda, Gastos (o maior, no centro),
-// Moderar e o "Mais". O Dash vai para a gaveta.
-const ATALHOS = ['/', '/calendario', '/gastos', '/moderando']
+// Ordem da barra: Painel, Agenda, Gastei agora (o maior, no centro),
+// Dash e o "Mais". O Moderador virou um bloco dentro de Gastei agora,
+// e a tela completa dele continua na gaveta.
+const ATALHOS = ['/', '/calendario', '/gastos', '/dash']
 const principais = computed(() =>
   ATALHOS.map((r) => itens.value.find((i: any) => i.para === r)).filter(Boolean) as any[])
 const outros = computed(() =>

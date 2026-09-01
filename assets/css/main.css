@@ -665,10 +665,10 @@ input:disabled, select:disabled { background: var(--papel); color: var(--tinta-4
   h2 { font-size: 1rem; }
   h3 { font-size: .92rem; }
 
-  .topo { margin-bottom: 15px; }
+  .topo { margin-bottom: 12px; }
   .topo p { font-size: .8rem; margin-top: 3px; }
 
-  .cartao { padding: 13px 14px; border-radius: 12px; }
+  .cartao { padding: 12px 13px; border-radius: 12px; }
   .cartao-topo { padding: 12px 14px; }
   .selo-valor { font-size: 1.2rem; letter-spacing: -.04em; }
   .caixa-destaque .selo-valor { font-size: 1.5rem; }

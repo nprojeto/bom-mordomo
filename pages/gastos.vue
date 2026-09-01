@@ -11,6 +11,14 @@ const ate = ref(hojeISO())
 const filtroForma = ref('')
 
 const lancador = ref<any>(null)
+const moderador = ref<any>(null)
+const filtros = ref(false)
+
+// lançou um gasto: o limite de hoje muda na mesma hora
+async function aoSalvar() {
+  await carregar()
+  await moderador.value?.carregar?.()
+}
 
 const rotuloForma: Record<string, string> = {
   dinheiro: 'Dinheiro', pix: 'Pix', debito: 'Débito',
@@ -52,53 +60,70 @@ onMounted(carregar)
 <template>
   <div>
     <div class="topo">
-      <h1>Gastos</h1>
-      <p>Tudo o que saiu no dia a dia — dinheiro, pix, débito e crédito.</p>
+      <h1>Gastei agora</h1>
+      <p>Registre o que saiu e veja quanto ainda dá para gastar hoje.</p>
     </div>
 
-    <LancarGasto ref="lancador" @salvo="carregar" />
+    <LancarGasto ref="lancador" @salvo="aoSalvar" />
+
+    <Moderador ref="moderador" style="margin:14px 0" />
 
     <div v-if="erro" class="aviso mal entre" style="margin-bottom:14px">
       <span>{{ erro }}</span>
       <button class="btn claro mini" @click="carregar">Tentar de novo</button>
     </div>
 
-    <!-- filtros -->
+    <!-- filtros: recolhidos, porque a maioria só quer lançar -->
     <div class="cartao" style="margin-bottom:14px">
-      <div class="grade g4">
-        <div>
-          <label>De</label>
-          <input v-model="de" type="date" :max="hojeISO()" @change="carregar" />
-        </div>
-        <div>
-          <label>Até</label>
-          <input v-model="ate" type="date" :max="hojeISO()" @change="carregar" />
-        </div>
-        <div>
-          <label>Forma</label>
-          <select v-model="filtroForma" @change="carregar">
-            <option value="">Todas</option>
-            <option v-for="f in FORMAS" :key="f" :value="f">{{ rotuloForma[f] }}</option>
-          </select>
-        </div>
-        <div>
-          <label>Comprado no período</label>
-          <div class="num saida" style="font-size:1.2rem;padding-top:5px">
-            {{ dinheiro(resumo.total_comprado) }}
+      <div class="entre" style="flex-wrap:wrap;gap:10px">
+        <div class="linha-flex" style="gap:14px;flex-wrap:wrap">
+          <div>
+            <div class="rotulo">Comprado no período</div>
+            <div class="num saida" style="font-size:1.15rem">
+              {{ dinheiro(resumo.total_comprado) }}
+            </div>
+          </div>
+          <div class="pequeno mudo">
+            {{ dataBr(de) }} a {{ dataBr(ate) }}
           </div>
         </div>
+
+        <button class="btn claro mini" @click="filtros = !filtros">
+          <i class="mi">filter_list</i>{{ filtros ? 'Fechar' : 'Filtrar' }}
+        </button>
       </div>
 
-      <div class="grade g4" style="margin-top:14px">
-        <div v-for="f in FORMAS" :key="f" class="pequeno">
-          <span class="rotulo">{{ rotuloForma[f] }}</span>
-          <div class="num">{{ dinheiro(resumo.por_forma?.[f]) }}</div>
+      <div v-if="filtros" style="margin-top:14px;padding-top:14px;
+                                 border-top:1px solid var(--linha)">
+        <div class="grade g3">
+          <div>
+            <label>De</label>
+            <input v-model="de" type="date" :max="hojeISO()" @change="carregar" />
+          </div>
+          <div>
+            <label>Até</label>
+            <input v-model="ate" type="date" :max="hojeISO()" @change="carregar" />
+          </div>
+          <div>
+            <label>Forma</label>
+            <select v-model="filtroForma" @change="carregar">
+              <option value="">Todas</option>
+              <option v-for="f in FORMAS" :key="f" :value="f">{{ rotuloForma[f] }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grade g4" style="margin-top:14px">
+          <div v-for="f in FORMAS" :key="f" class="pequeno">
+            <span class="rotulo">{{ rotuloForma[f] }}</span>
+            <div class="num">{{ dinheiro(resumo.por_forma?.[f]) }}</div>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- lista -->
-    <div class="cartao chapa">
+    <div class="cartao chapa larga">
       <div class="cartao-topo">
         <h2>Lançamentos</h2>
         <span class="pequeno mudo">{{ itens.length }} registro(s)</span>
