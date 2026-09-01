@@ -80,7 +80,13 @@ onMounted(carregar)
             {{ dinheiro(resumo.caixa_real) }}
           </div>
           <div class="pequeno mudo" style="margin-top:6px">
-            O que já entrou menos o que já saiu.
+            <template v-if="Number(resumo.saldo_anterior)">
+              Vieram <strong class="num">{{ dinheiro(resumo.saldo_anterior) }}</strong>
+              dos meses anteriores, mais o que entrou menos o que saiu.
+            </template>
+            <template v-else>
+              O que já entrou menos o que já saiu.
+            </template>
           </div>
         </div>
 
@@ -104,6 +110,16 @@ onMounted(carregar)
             de faturas dos próximos meses.
           </div>
         </div>
+      </div>
+
+      <div v-if="Number(resumo.pendente_anterior)" class="aviso entre"
+           style="margin-bottom:16px">
+        <span>
+          Há <strong class="num">{{ dinheiro(resumo.pendente_anterior) }}</strong>
+          em contas de meses anteriores sem baixa. Elas não entram no caixa
+          acima — enquanto isso, ele mostra mais dinheiro do que existe.
+        </span>
+        <NuxtLink to="/calendario" class="btn claro mini">Resolver</NuxtLink>
       </div>
 
       <div v-if="resumo.sem_baixa_qtd" class="aviso entre" style="margin-bottom:16px">

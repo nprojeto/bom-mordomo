@@ -38,7 +38,7 @@ const itens = computed(() => [
   { para: '/moderando',   ic: 'speed',           txt: 'Moderando',  curto: 'Moderar', rec: 'moderando' },
   { para: '/calendario',  ic: 'calendar_month',  txt: 'Calendário', curto: 'Agenda',  rec: 'calendario' },
   { para: '/contas',      ic: 'receipt_long',    txt: 'Contas',     curto: 'Contas',  rec: 'contas' },
-  { para: '/gastos',      ic: 'shopping_bag',    txt: 'Gastos',     curto: 'Gastos',  rec: 'gastos' },
+  { para: '/gastos',      ic: 'shopping_bag',    txt: 'Gastos',     curto: 'Gastei agora', rec: 'gastos' },
   { para: '/cartoes',     ic: 'credit_card',     txt: 'Cartões',    curto: 'Cartões', rec: 'cartoes' },
   { para: '/reservas',    ic: 'savings',         txt: 'Reservas',   curto: 'Reservas',rec: 'reservas' },
   ...(ehAdmin.value

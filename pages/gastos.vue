@@ -66,8 +66,14 @@ onMounted(carregar)
     <!-- filtros -->
     <div class="cartao" style="margin-bottom:14px">
       <div class="grade g4">
-        <div><label>De</label><input v-model="de" type="date" @change="carregar" /></div>
-        <div><label>Até</label><input v-model="ate" type="date" @change="carregar" /></div>
+        <div>
+          <label>De</label>
+          <input v-model="de" type="date" :max="hojeISO()" @change="carregar" />
+        </div>
+        <div>
+          <label>Até</label>
+          <input v-model="ate" type="date" :max="hojeISO()" @change="carregar" />
+        </div>
         <div>
           <label>Forma</label>
           <select v-model="filtroForma" @change="carregar">

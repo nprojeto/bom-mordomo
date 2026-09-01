@@ -137,6 +137,10 @@ function editarMov(m: any) {
 
 async function salvarMov() {
   if (!Number(formM.value.valor)) { erro.value = 'Informe o valor.'; return }
+  if (String(formM.value.data) > hojeISO()) {
+    erro.value = 'Não dá para lançar com data futura.'
+    return
+  }
   const corpo = {
     reserva_id: formM.value.reserva_id,
     tipo: formM.value.tipo,
@@ -354,7 +358,7 @@ onMounted(carregar)
             </div>
             <div class="campo">
               <label>Data</label>
-              <input v-model="formM.data" type="date" />
+              <input v-model="formM.data" type="date" :max="hojeISO()" />
             </div>
           </div>
           <div class="campo">

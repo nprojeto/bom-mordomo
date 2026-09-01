@@ -19,6 +19,9 @@ const categorias = ref<any[]>([])
 const form = ref<any>(null)
 const seletorCartao = ref<HTMLSelectElement | null>(null)
 
+// Gasto é registro do que já aconteceu: o calendário não abre o futuro.
+const hoje = hojeISO()
+
 let reconhecedor: any = null
 
 const exemplos = [
@@ -259,6 +262,10 @@ async function salvar() {
   if (!form.value) return
   erro.value = ''
   if (!Number(form.value.valor)) { erro.value = 'Informe o valor.'; return }
+  if (String(form.value.data) > hoje) {
+    erro.value = 'Não dá para lançar um gasto com data futura.'
+    return
+  }
 
   if (faltaCadastrar.value) {
     erro.value = `Você ainda não tem ${faltaCadastrar.value.nome} cadastrado. `
@@ -401,7 +408,7 @@ defineExpose({ editar, novoManual, carregarApoio })
         </div>
         <div class="campo">
           <label>Data</label>
-          <input v-model="form.data" type="date" />
+          <input v-model="form.data" type="date" :max="hoje" />
         </div>
         <div class="campo">
           <label>Categoria</label>

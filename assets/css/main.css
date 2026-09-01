@@ -142,7 +142,7 @@ a { color: inherit; }
 }
 .centro { text-align: center; }
 .direita { text-align: right; }
-.linha-flex { display: flex; align-items: center; gap: 10px; }
+.linha-flex { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .entre { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .espaco { flex: 1; }
 .pilha { display: grid; gap: 14px; }
@@ -184,8 +184,10 @@ a { color: inherit; }
 }
 .doca .ic .mi { font-size: 23px; vertical-align: 0; }
 .doca .txt {
-  font-size: .68rem; font-weight: 700; letter-spacing: -.01em; white-space: nowrap;
+  font-size: .68rem; font-weight: 700; letter-spacing: -.01em;
+  white-space: nowrap; line-height: 1.15;
 }
+.doca a.destaque .txt { white-space: normal; max-width: 74px; text-align: center; }
 
 .doca a.travado { opacity: .45; }
 .doca a .trava { position: absolute; top: 4px; right: 10px; font-size: 12px; }
@@ -336,6 +338,8 @@ a { color: inherit; }
 }
 
 .grade { display: grid; gap: 14px; }
+/* sem isto, um campo largo estica a coluna e a linha vaza da tela */
+.grade > *, .dupla > *, .linha-flex > * { min-width: 0; }
 .g2 { grid-template-columns: repeat(2, 1fr); }
 .g3 { grid-template-columns: repeat(3, 1fr); }
 .g4 { grid-template-columns: repeat(4, 1fr); }
@@ -449,7 +453,17 @@ input, select, textarea {
   width: 100%; padding: 11px 13px; border: 1px solid var(--linha);
   border-radius: 11px; font: inherit; font-size: .9rem;
   background: var(--carta); color: var(--tinta);
+  min-width: 0; max-width: 100%;
 }
+
+/* O campo de data tem largura própria no iPhone e no Safari, e escapa
+   da coluna. Estes ajustes obrigam a caber no espaço disponível. */
+input[type="date"] {
+  -webkit-appearance: none; appearance: none;
+  min-width: 0; width: 100%; display: block;
+}
+input[type="date"]::-webkit-date-and-time-value { text-align: left; min-width: 0; }
+input[type="date"]::-webkit-calendar-picker-indicator { margin-left: auto; }
 input:focus, select:focus, textarea:focus {
   outline: none; border-color: var(--azul);
   box-shadow: 0 0 0 3px rgba(11,114,206,.16);
@@ -644,6 +658,8 @@ input:disabled, select:disabled { background: var(--papel); color: var(--tinta-4
   .grade { gap: 9px; }
   .g2, .g3, .g4 { grid-template-columns: repeat(2, 1fr); }
   .dupla { grid-template-columns: repeat(2, 1fr); gap: 9px; }
+  input, select, textarea { padding: 10px 11px; font-size: .84rem; }
+  input[type="date"] { font-size: .8rem; }
 
   h1 { font-size: 1.25rem; }
   h2 { font-size: 1rem; }
@@ -701,6 +717,7 @@ input:disabled, select:disabled { background: var(--papel); color: var(--tinta-4
   .doca .ic { width: 32px; height: 32px; border-radius: 10px; }
   .doca .ic .mi { font-size: 20px; }
   .doca .txt { font-size: .58rem; }
+  .doca a.destaque .txt { font-size: .55rem; max-width: 62px; }
   .doca a.destaque .ic {
     width: 52px; height: 52px; margin-top: -24px; border-width: 3px;
   }
