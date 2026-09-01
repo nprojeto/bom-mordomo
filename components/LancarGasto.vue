@@ -38,6 +38,30 @@ const deCredito = computed(() => cartoes.value.filter((c) => c.tipo !== 'benefic
 const deBeneficio = computed(() => cartoes.value.filter((c) => c.tipo === 'beneficio'))
 const ehVale = computed(() => form.value?.forma === 'beneficio')
 
+// Uma forma só está disponível se houver como usá-la. Sem cartão de
+// crédito cadastrado, "Crédito" não é uma opção — é um beco sem saída.
+function formaDisponivel(f: string) {
+  if (f === 'credito') return deCredito.value.length > 0
+  if (f === 'beneficio') return deBeneficio.value.length > 0
+  return true
+}
+
+const faltaCadastrar = computed(() => {
+  const f = form.value?.forma
+  if (!f || formaDisponivel(f)) return null
+  return f === 'credito'
+    ? { nome: 'cartão de crédito', onde: '/cartoes', tipo: 'credito' }
+    : { nome: 'vale-benefício', onde: '/cartoes', tipo: 'beneficio' }
+})
+
+const alternativas = ['dinheiro', 'pix', 'debito']
+
+function trocarPara(f: string) {
+  if (!form.value) return
+  form.value.forma = f
+  erro.value = ''
+}
+
 const cartaoObrigatorio = computed(() =>
   ['credito', 'beneficio'].includes(form.value?.forma) && !form.value?.cartao_id)
 
@@ -182,6 +206,10 @@ async function interpretar() {
       observacao: r.texto,
       origem: 'voz'
     }
+    if (r.sem_cartao_cadastrado) {
+      erro.value = 'Você falou em cartão, mas não há nenhum cadastrado. '
+        + 'Deixei como dinheiro — troque abaixo se quiser.'
+    }
     await nextTick()
     if (cartaoObrigatorio.value) seletorCartao.value?.focus()
   } catch (e: any) { erro.value = e.message }
@@ -231,7 +259,18 @@ async function salvar() {
   if (!form.value) return
   erro.value = ''
   if (!Number(form.value.valor)) { erro.value = 'Informe o valor.'; return }
-  if (cartaoObrigatorio.value) { erro.value = 'Escolha de qual cartão saiu.'; return }
+
+  if (faltaCadastrar.value) {
+    erro.value = `Você ainda não tem ${faltaCadastrar.value.nome} cadastrado. `
+      + 'Cadastre um antes, ou escolha outra forma de pagamento.'
+    return
+  }
+  if (cartaoObrigatorio.value) {
+    erro.value = ehVale.value
+      ? 'Escolha de qual vale saiu.'
+      : 'Escolha de qual cartão saiu.'
+    return
+  }
 
   salvando.value = true
   const corpo = {
@@ -332,9 +371,27 @@ defineExpose({ editar, novoManual, carregarApoio })
         </div>
       </div>
 
-      <div v-if="cartaoObrigatorio && cartoes.length" class="aviso" style="margin-bottom:14px">
-        <strong>Falta escolher o cartão.</strong>
-        Você tem {{ cartoes.length }} cadastrados — selecione abaixo.
+      <!-- não dá para usar esta forma: explica e oferece saída -->
+      <div v-if="faltaCadastrar" class="aviso mal" style="margin-bottom:14px">
+        <strong>Você ainda não tem {{ faltaCadastrar.nome }} cadastrado.</strong>
+        Sem isso não dá para guardar este gasto — o sistema não saberia
+        em qual fatura ou saldo lançar.
+        <div class="linha-flex" style="margin-top:10px;flex-wrap:wrap">
+          <NuxtLink :to="faltaCadastrar.onde" class="btn latao mini">
+            <i class="mi">add</i>Cadastrar agora
+          </NuxtLink>
+          <span class="pequeno" style="margin-left:4px">ou lançar como:</span>
+          <button v-for="f in alternativas" :key="f" class="btn claro mini"
+                  @click="trocarPara(f)">
+            {{ rotuloForma[f] }}
+          </button>
+        </div>
+      </div>
+
+      <div v-else-if="cartaoObrigatorio" class="aviso" style="margin-bottom:14px">
+        <strong>Falta escolher {{ ehVale ? 'o vale' : 'o cartão' }}.</strong>
+        Você tem {{ (ehVale ? deBeneficio : deCredito).length }} cadastrado(s)
+        — selecione abaixo.
       </div>
 
       <div class="grade g3">
@@ -362,6 +419,8 @@ defineExpose({ editar, novoManual, carregarApoio })
                   class="btn mini" :class="form.forma === f ? '' : 'claro'"
                   @click="form.forma = f">
             {{ rotuloForma[f] }}
+            <i v-if="!formaDisponivel(f)" class="mi"
+               style="font-size:14px;opacity:.7">block</i>
           </button>
         </div>
       </div>
@@ -388,11 +447,6 @@ defineExpose({ editar, novoManual, carregarApoio })
             <option value="total">o total da compra</option>
           </select>
         </div>
-      </div>
-
-      <div v-if="form.forma === 'credito' && !deCredito.length" class="aviso mal">
-        Você ainda não tem cartão de crédito cadastrado.
-        <NuxtLink to="/cartoes"><strong>Cadastre um aqui.</strong></NuxtLink>
       </div>
 
       <div class="grade g2" style="align-items:end">
@@ -432,7 +486,7 @@ defineExpose({ editar, novoManual, carregarApoio })
       <div v-if="erro" class="aviso mal" style="margin-bottom:12px">{{ erro }}</div>
 
       <div class="linha-flex">
-        <button class="btn latao" :disabled="salvando || cartaoObrigatorio" @click="salvar">
+        <button class="btn latao" :disabled="salvando || cartaoObrigatorio || !!faltaCadastrar" @click="salvar">
           {{ salvando ? 'Gravando…' : (form.id ? 'Salvar alteração' : 'Gravar gasto') }}
         </button>
         <button class="btn claro" @click="form = null">Descartar</button>

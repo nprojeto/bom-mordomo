@@ -158,6 +158,14 @@ onMounted(carregar)
               <div class="pequeno mudo">crédito, sai no vencimento</div>
             </div>
           </div>
+          <div v-if="Number(resumo.comprado_no_credito)" class="pequeno"
+               style="margin-top:10px;padding-top:10px;border-top:1px solid var(--linha)">
+            Você comprou <strong class="num">{{ dinheiro(resumo.comprado_no_credito) }}</strong>
+            no crédito este mês.
+            <span class="mudo">Entra na fatura, não no caixa de agora.</span>
+            <NuxtLink to="/cartoes" class="pequeno"><strong>Ver faturas</strong></NuxtLink>
+          </div>
+
           <div class="pequeno mudo" style="margin-top:10px">
             Contas fixas: <span class="num">{{ dinheiro(resumo.despesas_contas) }}</span> ·
             Gastos: <span class="num">{{ dinheiro(resumo.despesas_gastos) }}</span>
