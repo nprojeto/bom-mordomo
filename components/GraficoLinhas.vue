@@ -7,6 +7,8 @@ const props = withDefaults(defineProps<{
   barras?: boolean
 }>(), { altura: 300, acumulado: false, barras: false })
 
+const { sigilo } = useSigilo()
+
 const L = 58   // espaço para os valores à esquerda
 const R = 14
 const T = 14
@@ -99,6 +101,7 @@ const noFoco = computed(() => {
 <template>
   <div class="gr">
     <svg ref="area" :viewBox="`0 0 ${larg} ${alt}`" class="gr-tela"
+         :class="{ oculto: sigilo }"
          @mousemove="mover" @mouseleave="foco = null">
       <!-- referências -->
       <g>
@@ -106,7 +109,9 @@ const noFoco = computed(() => {
               :x1="L" :x2="larg - R" :y1="m.y" :y2="m.y" class="gr-grade" />
         <text v-for="(m, i) in marcas" :key="'t' + i"
               :x="L - 8" :y="m.y + 4" class="gr-valor">
-          {{ m.v >= 1000 ? (m.v / 1000).toFixed(m.v >= 10000 ? 0 : 1) + 'k' : Math.round(m.v) }}
+          {{ sigilo ? '•••'
+            : (m.v >= 1000 ? (m.v / 1000).toFixed(m.v >= 10000 ? 0 : 1) + 'k'
+                           : Math.round(m.v)) }}
         </text>
       </g>
 
@@ -170,6 +175,10 @@ const noFoco = computed(() => {
 <style scoped>
 .gr { position: relative; }
 .gr-tela { width: 100%; height: auto; display: block; overflow: visible; }
+/* com o sigilo ligado o desenho continua, mas sem revelar a escala */
+.gr-tela.oculto .gr-linha,
+.gr-tela.oculto .gr-barra,
+.gr-tela.oculto .gr-marca { filter: blur(5px); }
 
 .gr-grade { stroke: var(--linha); stroke-width: 1; }
 .gr-foco { stroke: var(--tinta-45); stroke-width: 1; stroke-dasharray: 3 3; }

@@ -151,6 +151,10 @@ a { color: inherit; }
 .moldura { display: flex; min-height: 100%; }
 .coluna { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 
+/* o olho ligado fica em destaque, para não esquecer que está escondido */
+.botao-canto.ativo { background: var(--laranja-fundo); color: var(--laranja);
+  border-color: var(--laranja-borda); }
+
 /* ------------------------------------------------------------- doca
    Barra flutuante no rodapé, igual no computador e no celular.
    O botão de lançar gasto fica maior: é o mais usado do dia a dia. */
@@ -204,7 +208,7 @@ a { color: inherit; }
 .coluna { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 
 .cabecalho {
-  position: sticky; top: 0; z-index: 40;
+  position: sticky; top: 0; z-index: 40; flex: 0 0 auto;
   display: flex; align-items: center; gap: 10px;
   padding: 10px 24px; min-height: 62px;
   background: var(--carta); border-bottom: 1px solid var(--linha);

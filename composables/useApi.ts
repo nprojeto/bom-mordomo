@@ -109,9 +109,13 @@ export function arquivo(nome: string) {
 }
 
 /* ------------------------------------------------------------ formato */
-export const dinheiro = (v: any) =>
-  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
+// Todo valor em dinheiro passa por aqui. Com o sigilo ligado, some
+// em toda parte de uma vez — sem precisar mexer em cada tela.
+export const dinheiro = (v: any) => {
+  if (sigilo.value) return 'R$ ••••'
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
     .format(Number(v || 0))
+}
 
 export const dataBr = (d: any) => {
   if (!d) return '—'

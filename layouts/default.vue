@@ -3,6 +3,7 @@ const rota = useRoute()
 const supa = useSupa()
 const api = useApi()
 const { escuroAgora, alternar } = useTema()
+const { sigilo, alternar: alternarSigilo } = useSigilo()
 
 const email = ref('')
 const nome = ref('')
@@ -161,6 +162,13 @@ async function sair() {
         <span class="espaco"></span>
 
         <div class="canto">
+          <button class="botao-canto" :class="{ ativo: sigilo }"
+                  :aria-label="sigilo ? 'Mostrar valores' : 'Esconder valores'"
+                  :title="sigilo ? 'Mostrar valores' : 'Esconder valores'"
+                  @click="alternarSigilo">
+            <i class="mi">{{ sigilo ? 'visibility_off' : 'visibility' }}</i>
+          </button>
+
           <button class="botao-canto" :class="{ ativo: abaSino }"
                   aria-label="Avisos"
                   @click="abaSino = !abaSino; abaPerfil = false">
@@ -223,6 +231,14 @@ async function sair() {
                     class="perfil-item" @click="abaPerfil = false">
             <i class="mi">{{ p.ic }}</i>{{ p.txt }}
           </NuxtLink>
+
+          <button class="perfil-item" @click="alternarSigilo">
+            <i class="mi">{{ sigilo ? 'visibility_off' : 'visibility' }}</i>
+            {{ sigilo ? 'Mostrar valores' : 'Esconder valores' }}
+            <span class="pequeno mudo" style="margin-left:auto">
+              {{ sigilo ? 'escondidos' : 'visíveis' }}
+            </span>
+          </button>
 
           <button class="perfil-item" @click="alternar">
             <i class="mi">{{ escuroAgora ? 'light_mode' : 'dark_mode' }}</i>
