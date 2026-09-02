@@ -34,7 +34,6 @@ function temRecurso(chave?: string) {
 const itens = computed(() => [
   { para: '/',            ic: 'grid_view',       txt: 'Painel',     curto: 'Painel' },
   { para: '/dash',        ic: 'monitoring',      txt: 'Dash',       curto: 'Dash' },
-  { para: '/moderando',   ic: 'speed',           txt: 'Moderando',  curto: 'Moderar', rec: 'moderando' },
   { para: '/calendario',  ic: 'calendar_month',  txt: 'Calendário', curto: 'Agenda',  rec: 'calendario' },
   { para: '/contas',      ic: 'receipt_long',    txt: 'Contas',     curto: 'Contas',  rec: 'contas' },
   { para: '/gastos',      ic: 'shopping_bag',    txt: 'Gastos',     curto: 'Gastei agora', rec: 'gastos' },
@@ -47,8 +46,9 @@ const itens = computed(() => [
 
 // no celular cabem poucos: os quatro do dia a dia mais o "Mais"
 // Ordem da barra: Painel, Agenda, Gastei agora (o maior, no centro),
-// Dash e o "Mais". O Moderador virou um bloco dentro de Gastei agora,
-// e a tela completa dele continua na gaveta.
+// Dash e o "Mais". O Moderador não tem item próprio: ele vive dentro de
+// Gastei agora, que é onde a informação serve. A tela do mês inteiro
+// continua existindo, alcançada pelo link dentro do bloco.
 const ATALHOS = ['/', '/calendario', '/gastos', '/dash']
 const principais = computed(() =>
   ATALHOS.map((r) => itens.value.find((i: any) => i.para === r)).filter(Boolean) as any[])
