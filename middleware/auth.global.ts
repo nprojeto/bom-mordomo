@@ -1,15 +1,5 @@
 const PUBLICAS = ['/login', '/criar-conta', '/recuperar']
 
-// Qual funcionalidade cada tela exige
-const RECURSO_DA_TELA: Record<string, string> = {
-  '/moderando': 'moderando',
-  '/calendario': 'calendario',
-  '/contas': 'contas',
-  '/gastos': 'gastos',
-  '/cartoes': 'cartoes',
-  '/reservas': 'reservas'
-}
-
 export default defineNuxtRouteMiddleware(async (para) => {
   if (import.meta.server) return
 
@@ -21,17 +11,11 @@ export default defineNuxtRouteMiddleware(async (para) => {
   if (!logado && !publica) return navigateTo('/login')
 
   // Quem já está entrado e abre /login vê um aviso de quem está logado,
-  // com a opção de trocar de conta. Mandar direto para o app faz parecer
-  // que o sistema entrou com a conta errada.
+  // com a opção de trocar de conta. Mandar direto para o app faria
+  // parecer que o sistema entrou com a conta errada.
   if (logado && publica && para.path !== '/login') return navigateTo('/')
-  if (!logado) return
 
-  // Tela fora do plano: em vez de erro, mostramos o que resolveria
-  const precisa = RECURSO_DA_TELA[para.path]
-  if (!precisa) return
-
-  const recursos = await useRecursos()
-  if (recursos && Object.keys(recursos).length && recursos[precisa] === false) {
-    return navigateTo(`/planos?bloqueado=${precisa}`)
-  }
+  // Tela fora do plano não redireciona: ela mesma se mostra trancada,
+  // com uma prévia do que a pessoa está perdendo. Ser mandado embora
+  // esconde que a função existe.
 })

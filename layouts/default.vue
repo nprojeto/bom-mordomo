@@ -17,7 +17,6 @@ const foto = ref<string | null>(null)
 const avisos = ref<any[]>([])
 const urgentes = ref(0)
 
-const balao = ref<any>(null)
 const gaveta = ref(false)
 const abaSino = ref(false)
 const abaPerfil = ref(false)
@@ -73,33 +72,6 @@ const iniciais = computed(() => {
 })
 
 function fecharTudo() { abaSino.value = false; abaPerfil.value = false; gaveta.value = false }
-
-function explicar(item: any, ev: MouseEvent) {
-  const alvo = (ev.currentTarget as HTMLElement).getBoundingClientRect()
-  const r = catalogo.value.find((x) => x.chave === item.rec)
-  balao.value = {
-    rec: item.rec,
-    nome: r?.nome ?? item.txt,
-    texto: r?.detalhe ?? r?.texto ?? 'Esta parte do sistema.',
-    exemplos: r?.exemplos ?? [],
-    topo: Math.min(alvo.top, Math.max(20, window.innerHeight - 340)),
-    esquerda: alvo.right + 10
-  }
-}
-function fecharBalao() { balao.value = null }
-
-async function verPlanos() {
-  const rec = balao.value?.rec
-  fecharBalao()
-  await navigateTo(`/planos?bloqueado=${rec}`)
-}
-
-function tocarMobile(i: any, ev: MouseEvent) {
-  if (!i.bloqueado) { gaveta.value = false; return }
-  ev.preventDefault()
-  gaveta.value = false
-  explicar(i, ev)
-}
 
 async function carregarAvisos() {
   try {
@@ -275,7 +247,7 @@ async function sair() {
     <nav class="doca">
       <NuxtLink v-for="i in principais" :key="i.para" :to="i.para"
                 :class="{ travado: i.bloqueado, destaque: i.para === '/gastos' }"
-                @click="tocarMobile(i, $event)">
+                @click="gaveta = false">
         <span class="ic"><i class="mi">{{ i.ic }}</i></span>
         <span class="txt">{{ i.curto }}</span>
       </NuxtLink>
@@ -292,7 +264,7 @@ async function sair() {
         <div class="gaveta-grade">
           <NuxtLink v-for="i in outros" :key="i.para" :to="i.para"
                     :class="{ travado: i.bloqueado }"
-                    @click="tocarMobile(i, $event)">
+                    @click="gaveta = false">
             <span class="ic"><i class="mi">{{ i.ic }}</i></span>
             <span>{{ i.txt }}</span>
             <i v-if="i.bloqueado" class="mi trava">lock</i>
@@ -301,28 +273,5 @@ async function sair() {
       </div>
     </div>
 
-    <!-- explicacao do que esta travado -->
-    <div v-if="balao" class="balao-fundo" @click="fecharBalao">
-      <div class="balao" :style="{ top: balao.topo + 'px', left: balao.esquerda + 'px' }"
-           @click.stop>
-        <div class="balao-topo">
-          <span class="balao-cadeado"><i class="mi">lock</i></span>
-          <strong>{{ balao.nome }}</strong>
-        </div>
-
-        <p>{{ balao.texto }}</p>
-
-        <ul v-if="balao.exemplos.length" class="balao-lista">
-          <li v-for="(e, i) in balao.exemplos" :key="i">{{ e }}</li>
-        </ul>
-
-        <p class="balao-nota">Não faz parte do seu plano atual.</p>
-
-        <div class="linha-flex">
-          <button class="btn latao mini" @click="verPlanos">Ver planos</button>
-          <button class="btn claro mini" @click="fecharBalao">Agora não</button>
-        </div>
-      </div>
-    </div>
   </div>
 </template>

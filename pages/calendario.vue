@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const { bloqueado, conferindo } = useBloqueio('calendario')
 const api = useApi()
 
 const ref_ = ref(hojeISO().slice(0, 7))
@@ -124,12 +125,13 @@ onMounted(carregar)
 
 <template>
   <div>
+    <TelaTrancada v-if="bloqueado" chave="calendario" />
+
+    <div v-show="!bloqueado">
     <div class="topo">
       <h1>Calendário</h1>
       <p>Tudo o que entra e sai, dia a dia. Clique num dia para editar.</p>
-    </div>
-
-    <div v-if="erro && !editando" class="aviso mal entre" style="margin-bottom:14px">
+    </div>    <div v-if="erro && !editando" class="aviso mal entre" style="margin-bottom:14px">
       <span>{{ erro }}</span>
       <button class="btn claro mini" @click="carregar">Tentar de novo</button>
     </div>
@@ -269,5 +271,6 @@ onMounted(carregar)
         </div>
       </div>
     </div>
+  </div>
   </div>
 </template>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const { bloqueado, conferindo } = useBloqueio('contas')
 const api = useApi()
 
 const lista = ref<any[]>([])
@@ -177,6 +178,9 @@ onMounted(carregar)
 
 <template>
   <div>
+    <TelaTrancada v-if="bloqueado" chave="contas" />
+
+    <div v-show="!bloqueado">
     <div class="topo entre">
       <div>
         <h1>Contas e entradas</h1>
@@ -240,7 +244,7 @@ onMounted(carregar)
                 <template v-if="c.tem_fechada">
                   <span class="eti atrasado">fechada</span>
                   <div class="mudo">vence {{ dataBr(c.vencimento_fechada) }}</div>
-                </template>
+  </template>
                 <template v-else>
                   <span class="eti pendente">aberta</span>
                   <div class="mudo">{{ c.itens_aberta }} lançamento(s)</div>
@@ -505,5 +509,6 @@ onMounted(carregar)
         </div>
       </div>
     </div>
+  </div>
   </div>
 </template>

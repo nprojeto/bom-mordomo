@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const { bloqueado, conferindo } = useBloqueio('moderando')
 const api = useApi()
 
 const mes = ref(hojeISO().slice(0, 7))
@@ -65,6 +66,9 @@ onMounted(carregar)
 
 <template>
   <div>
+    <TelaTrancada v-if="bloqueado" chave="moderando" />
+
+    <div v-show="!bloqueado">
     <div class="topo entre">
       <div>
         <h1>Moderando</h1>
@@ -193,7 +197,7 @@ onMounted(carregar)
         <div class="resultado-simulacao" :class="economia >= 0 ? 'bom' : 'ruim'">
           <template v-if="diasRestantes <= 0">
             Este mês já fechou.
-          </template>
+  </template>
           <template v-else-if="economia > 0">
             Gastando <span class="num">{{ dinheiro(meuLimite) }}</span> por dia nos
             {{ diasRestantes }} dias que faltam, você termina o mês com
@@ -283,6 +287,7 @@ onMounted(carregar)
         </div>
       </div>
     </template>
+  </div>
   </div>
 </template>
 

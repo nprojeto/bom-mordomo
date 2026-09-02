@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const { bloqueado, conferindo } = useBloqueio('cartoes')
 const api = useApi()
 
 const cartoes = ref<any[]>([])
@@ -153,6 +154,9 @@ onMounted(carregar)
 
 <template>
   <div>
+    <TelaTrancada v-if="bloqueado" chave="cartoes" />
+
+    <div v-show="!bloqueado">
     <div class="topo entre">
       <div>
         <h1>Cartões</h1>
@@ -213,7 +217,7 @@ onMounted(carregar)
             <template v-if="c.tipo === 'beneficio'">
               <div>Entra dia {{ c.dia_recarga }}</div>
               <div>{{ c.acumula ? 'Acumula' : 'Não acumula' }}</div>
-            </template>
+  </template>
             <template v-else>
               <div>Vira dia {{ c.dia_fechamento }}</div>
               <div>Vence dia {{ c.dia_vencimento }}</div>
@@ -474,6 +478,7 @@ onMounted(carregar)
         </div>
       </div>
     </div>
+  </div>
   </div>
 </template>
 

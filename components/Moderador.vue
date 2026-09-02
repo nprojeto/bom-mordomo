@@ -37,7 +37,14 @@ async function carregar() {
     dados.value = await api.get(`/moderando?mes=${hojeISO().slice(0, 7)}`)
     if (!mexeu.value) meuLimite.value = Math.floor(sugerido.value)
   } catch (e: any) {
-    erro.value = e.message
+    // O servidor também barra o que está fora do plano. Sem tratar isso
+    // aqui, o bloco simplesmente sumia da tela — e some é pior que
+    // trancado: ninguém descobre que a função existe.
+    if (/não inclui|nao inclui/i.test(String(e.message))) {
+      temRecurso.value = false
+    } else {
+      erro.value = e.message
+    }
   } finally {
     carregando.value = false
   }
@@ -57,19 +64,38 @@ onMounted(carregar)
 </script>
 
 <template>
-  <!-- fora do plano: mostra o que é e como liberar -->
-  <div v-if="!temRecurso && !carregando" class="cartao larga mod-travado">
-    <div class="linha-flex" style="gap:12px">
-      <span class="mod-cadeado"><i class="mi">lock</i></span>
-      <div style="flex:1;min-width:0">
-        <strong>Moderador</strong>
-        <div class="pequeno mudo">
-          Mostra quanto dá para gastar hoje sem apertar o fim do mês.
+  <!-- fora do plano: mesmo desenho, números cobertos -->
+  <div v-if="!temRecurso && !carregando" class="cartao larga mod mod-travado">
+    <div class="entre" style="flex-wrap:wrap;gap:12px">
+      <div style="min-width:0">
+        <div class="rotulo linha-flex" style="gap:6px">
+          <i class="mi" style="font-size:14px">lock</i>Moderador
         </div>
+        <div class="selo-valor coberto">R$ 135,02</div>
+        <div class="pequeno mudo coberto">Já gastou R$ 54,08 de R$ 189,10</div>
       </div>
+
       <NuxtLink to="/planos?bloqueado=moderando" class="btn latao mini">
-        Ver planos
+        Liberar
       </NuxtLink>
+    </div>
+
+    <div class="mod-numeros">
+      <div><span class="rotulo">Ainda tenho</span>
+           <span class="num coberto">R$ 486,02</span></div>
+      <div><span class="rotulo">Faltam</span>
+           <span class="num coberto">5 dia(s)</span></div>
+      <div><span class="rotulo">Por dia</span>
+           <span class="num coberto">R$ 97,20</span></div>
+    </div>
+
+    <div class="mod-recado">
+      <span class="mod-cadeado"><i class="mi">lock</i></span>
+      <div>
+        <strong>Isto não faz parte do seu plano.</strong>
+        O Moderador calcula quanto dá para gastar hoje sem apertar o fim do
+        mês, e refaz a conta a cada gasto que você lança.
+      </div>
     </div>
   </div>
 
@@ -164,7 +190,19 @@ onMounted(carregar)
 }
 .mod-ajuste input[type="range"] { width: 100%; accent-color: var(--laranja); }
 
-.mod-travado { border-left: 3px solid var(--linha); }
+.mod-travado { border-left-color: var(--tinta-45); }
+
+/* números de exemplo, cobertos: mostram o formato sem revelar nada */
+.coberto {
+  filter: blur(6px); user-select: none; pointer-events: none;
+  opacity: .55;
+}
+
+.mod-recado {
+  display: flex; gap: 11px; align-items: flex-start;
+  margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--linha);
+  font-size: .82rem; color: var(--tinta-70); line-height: 1.5;
+}
 .mod-cadeado {
   width: 34px; height: 34px; flex: 0 0 34px; border-radius: 11px;
   background: var(--papel); color: var(--tinta-45);

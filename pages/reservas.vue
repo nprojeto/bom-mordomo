@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const { bloqueado, conferindo } = useBloqueio('reservas')
 const api = useApi()
 
 const lista = ref<any[]>([])
@@ -174,6 +175,9 @@ onMounted(carregar)
 
 <template>
   <div>
+    <TelaTrancada v-if="bloqueado" chave="reservas" />
+
+    <div v-show="!bloqueado">
     <div class="topo entre">
       <div>
         <h1>Reservas</h1>
@@ -228,7 +232,7 @@ onMounted(carregar)
           <div class="pequeno mudo" style="margin-top:5px">
             {{ Math.round(progresso(r)!) }}% da meta de {{ dinheiro(r.meta_valor) }}
           </div>
-        </template>
+  </template>
 
         <div class="linha-flex" style="margin-top:14px;flex-wrap:wrap">
           <button class="btn latao mini" @click="novaMov(r)">Lançar</button>
@@ -373,5 +377,6 @@ onMounted(carregar)
         </div>
       </div>
     </div>
+  </div>
   </div>
 </template>

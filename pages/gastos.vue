@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const { bloqueado, conferindo } = useBloqueio('gastos')
 const api = useApi()
 
 const itens = ref<any[]>([])
@@ -59,12 +60,13 @@ onMounted(carregar)
 
 <template>
   <div>
+    <TelaTrancada v-if="bloqueado" chave="gastos" />
+
+    <div v-show="!bloqueado">
     <div class="topo">
       <h1>Gastei agora</h1>
       <p>Registre o que saiu e veja quanto ainda dá para gastar hoje.</p>
-    </div>
-
-    <LancarGasto ref="lancador" @salvo="aoSalvar" />
+    </div>    <LancarGasto ref="lancador" @salvo="aoSalvar" />
 
     <Moderador ref="moderador" style="margin:14px 0" />
 
@@ -186,5 +188,6 @@ onMounted(carregar)
         </table>
       </div>
     </div>
+  </div>
   </div>
 </template>
