@@ -134,14 +134,14 @@ onMounted(carregar)
       <!-- movimento do mes -->
       <div class="grade g4" style="margin-bottom:16px">
         <div class="cartao">
-          <div class="rotulo">Entrou / vai entrar</div>
+          <div class="rotulo">Entradas previstas no mês</div>
           <div class="selo-valor entrada">{{ dinheiro(resumo.receitas) }}</div>
           <div class="pequeno mudo">
             já caiu <span class="num">{{ dinheiro(resumo.recebido) }}</span>
           </div>
         </div>
         <div class="cartao">
-          <div class="rotulo">Saiu / vai sair</div>
+          <div class="rotulo">Saídas previstas no mês</div>
           <div class="selo-valor saida">{{ dinheiro(resumo.despesas) }}</div>
           <div class="pequeno mudo">
             já saiu <span class="num">{{ dinheiro(Number(resumo.pago) + Number(resumo.gasto_feito)) }}</span>

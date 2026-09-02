@@ -5,7 +5,6 @@ const dados = ref<any>(null)
 const carregando = ref(true)
 const erro = ref('')
 const temRecurso = ref(true)
-const detalhe = ref(false)      // a barra de ajuste fica recolhida
 const meuLimite = ref(0)
 const mexeu = ref(false)
 const salvando = ref(false)
@@ -95,9 +94,9 @@ onMounted(carregar)
         </div>
       </div>
 
-      <button class="btn claro mini" @click="detalhe = !detalhe">
-        <i class="mi">tune</i>{{ detalhe ? 'Fechar' : 'Ajustar' }}
-      </button>
+      <NuxtLink to="/moderando" class="btn claro mini">
+        <i class="mi">calendar_month</i>Ver o mês
+      </NuxtLink>
     </div>
 
     <!-- números do mês, em linha -->
@@ -116,8 +115,8 @@ onMounted(carregar)
       </div>
     </div>
 
-    <!-- ajuste: quem mexe, mexe uma vez por mês -->
-    <div v-if="detalhe" class="mod-ajuste">
+    <!-- a barra fica à vista: é o que faz a pessoa decidir na hora -->
+    <div class="mod-ajuste">
       <div class="entre" style="margin-bottom:8px">
         <span class="pequeno">Segurar em</span>
         <strong class="num">{{ dinheiro(meuLimite) }} por dia</strong>
@@ -140,12 +139,10 @@ onMounted(carregar)
         </template>
       </div>
 
-      <div class="linha-flex" style="margin-top:12px">
-        <button class="btn mini" :disabled="salvando" @click="guardarLimite">
-          {{ salvando ? 'Guardando…' : 'Usar este limite' }}
-        </button>
-        <NuxtLink to="/moderando" class="btn claro mini">Ver o mês inteiro</NuxtLink>
-      </div>
+      <button v-if="mexeu" class="btn mini" style="margin-top:10px"
+              :disabled="salvando" @click="guardarLimite">
+        {{ salvando ? 'Guardando…' : 'Usar este limite' }}
+      </button>
     </div>
   </div>
 </template>
