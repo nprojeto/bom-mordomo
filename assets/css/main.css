@@ -402,6 +402,39 @@ a { color: inherit; }
   font-variant-numeric: tabular-nums; }
 
 /* --------------------------------------------------------- tabelas */
+/* A barra de rolagem some sozinha no celular, e a pessoa não descobre
+   que a tabela continua para o lado. Aqui ela fica sempre à vista. */
+.tabela-rolagem {
+  overflow-x: auto; overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--tinta-45) var(--papel);
+  padding-bottom: 2px;
+}
+.tabela-rolagem::-webkit-scrollbar {
+  height: 9px; -webkit-appearance: none; display: block;
+}
+.tabela-rolagem::-webkit-scrollbar-track {
+  background: var(--papel); border-radius: 99px;
+}
+.tabela-rolagem::-webkit-scrollbar-thumb {
+  background: var(--tinta-45); border-radius: 99px;
+  border: 2px solid var(--papel);
+}
+.tabela-rolagem::-webkit-scrollbar-thumb:hover { background: var(--tinta-70); }
+
+/* sombra na borda: reforça que há mais conteúdo à direita */
+.tabela-rolagem {
+  background:
+    linear-gradient(to right, var(--carta) 30%, rgba(0,0,0,0)) left / 24px 100% no-repeat,
+    linear-gradient(to left, var(--carta) 30%, rgba(0,0,0,0)) right / 24px 100% no-repeat,
+    radial-gradient(farthest-side at 0 50%, rgba(22,32,46,.14), rgba(0,0,0,0))
+      left / 11px 100% no-repeat,
+    radial-gradient(farthest-side at 100% 50%, rgba(22,32,46,.14), rgba(0,0,0,0))
+      right / 11px 100% no-repeat;
+  background-attachment: local, local, scroll, scroll;
+}
+
 table { width: 100%; border-collapse: collapse; }
 th {
   text-align: left; font-size: .68rem; text-transform: uppercase;
@@ -702,7 +735,6 @@ input:disabled, select:disabled { background: var(--papel); color: var(--tinta-4
   .mes-titulo { font-size: 1.05rem; }
   .semana div { padding: 6px 3px; font-size: .6rem; }
 
-  .tabela-rolagem { overflow-x: auto; }
   .tabela-rolagem table { min-width: 560px; }
 
   /* estes precisam da linha inteira para não espremer */

@@ -160,7 +160,7 @@ onMounted(carregar)
       </div>
 
       <div class="grade g2" style="margin-bottom:16px">
-        <div class="cartao">
+        <div class="cartao larga">
           <div class="rotulo">De onde saiu o dinheiro</div>
           <div class="grade g2" style="margin-top:8px">
             <div>
