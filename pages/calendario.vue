@@ -74,6 +74,29 @@ async function carregar() {
   }
 }
 
+const baixando = ref<any>(null)
+const dataBaixa = ref(hojeISO())
+const valorBaixa = ref('')
+
+function abrirBaixa(o: any) {
+  baixando.value = o
+  // Quem dá baixa hoje numa conta que vence depois pagou adiantado.
+  // A data padrão é hoje, não o vencimento.
+  dataBaixa.value = hojeISO()
+  valorBaixa.value = String(o.valor ?? '')
+}
+
+async function confirmarBaixa() {
+  if (!baixando.value) return
+  const o = baixando.value
+  await api.patch(`/ocorrencias/pagar/${o.id}`, {
+    valor_pago: Number(String(valorBaixa.value).replace(',', '.')) || o.valor,
+    data_pagamento: dataBaixa.value,
+  })
+  baixando.value = null
+  await carregar()
+}
+
 async function pagar(o: any) {
   await api.patch(`/ocorrencias/pagar/${o.id}`, { valor_pago: o.valor })
   await carregar()
@@ -207,7 +230,7 @@ onMounted(carregar)
               <span class="pequeno mudo">{{ e.itens }} lançamento(s) nesta fatura</span>
             </div>
             <div v-else class="linha-flex" style="margin-top:8px;flex-wrap:wrap">
-              <button v-if="e.status !== 'pago'" class="btn latao mini" @click="pagar(e)">
+              <button v-if="e.status !== 'pago'" class="btn latao mini" @click="abrirBaixa(e)">
                 Dar baixa
               </button>
               <button v-else class="btn claro mini" @click="desfazer(e)">Desfazer baixa</button>
@@ -273,4 +296,47 @@ onMounted(carregar)
     </div>
   </div>
   </div>
+    <!-- dar baixa, com a data em que o dinheiro saiu -->
+    <div v-if="baixando" class="veu" @click.self="baixando = null">
+      <div class="painel" style="max-width:420px">
+        <div class="painel-topo">
+          <h2>Dar baixa</h2>
+          <button class="fechar" @click="baixando = null"><i class="mi">close</i></button>
+        </div>
+
+        <div class="painel-corpo">
+          <div class="cartao" style="margin-bottom:16px">
+            <strong>{{ baixando.descricao }}</strong>
+            <div class="pequeno mudo">
+              Vence em {{ dataBr(baixando.data) }}
+            </div>
+          </div>
+
+          <div class="dupla">
+            <div class="campo">
+              <label>Quanto saiu</label>
+              <input v-model="valorBaixa" inputmode="decimal" />
+            </div>
+            <div class="campo">
+              <label>Quando saiu</label>
+              <input v-model="dataBaixa" type="date" :max="hojeISO()" />
+            </div>
+          </div>
+
+          <div v-if="dataBaixa < String(baixando.data).slice(0, 10)"
+               class="aviso pequeno">
+            Pagamento antecipado — sai do caixa em {{ dataBr(dataBaixa) }}.
+          </div>
+          <div v-else-if="Number(valorBaixa) !== Number(baixando.valor)"
+               class="aviso pequeno">
+            Valor diferente do previsto ({{ dinheiro(baixando.valor) }}).
+          </div>
+        </div>
+
+        <div class="painel-pe">
+          <button class="btn claro" @click="baixando = null">Cancelar</button>
+          <button class="btn" @click="confirmarBaixa">Confirmar</button>
+        </div>
+      </div>
+    </div>
 </template>

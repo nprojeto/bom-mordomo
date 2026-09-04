@@ -26,6 +26,46 @@ const totalSaldoVale = computed(() =>
 const totalAberto = computed(() =>
   cartoes.value.reduce((s, c) => s + Number(c.total_aberta || 0), 0))
 
+const quitando = ref<any>(null)
+const dataQuitacao = ref(hojeISO())
+const salvandoQuitacao = ref(false)
+
+function abrirQuitacao(c: any, qual: 'fechada' | 'aberta') {
+  const comp = qual === 'fechada' ? c.competencia_fechada : c.competencia_aberta
+  quitando.value = {
+    cartao: c, qual, competencia: comp,
+    valor: qual === 'fechada' ? c.total_fechada : c.total_aberta,
+    vencimento: qual === 'fechada' ? c.vencimento_fechada : c.vencimento_aberta,
+  }
+  dataQuitacao.value = hojeISO()
+  erro.value = ''
+}
+
+async function quitar() {
+  if (!quitando.value) return
+  salvandoQuitacao.value = true
+  try {
+    await api.post('/faturas/pagar', {
+      cartao_id: quitando.value.cartao.id,
+      competencia: quitando.value.competencia,
+      data_pagamento: dataQuitacao.value,
+    })
+    quitando.value = null
+    await carregar()
+  } catch (e: any) { erro.value = e.message }
+  salvandoQuitacao.value = false
+}
+
+async function desfazerQuitacao(c: any) {
+  if (!confirm(`Desfazer o pagamento da fatura de ${c.nome}?`)) return
+  try {
+    await api.post('/faturas/desfazer', {
+      cartao_id: c.id, competencia: c.competencia_fechada,
+    })
+    await carregar()
+  } catch (e: any) { erro.value = e.message }
+}
+
 const totalFechado = computed(() =>
   cartoes.value.reduce((s, c) => s + Number(c.total_fechada || 0), 0))
 
@@ -217,7 +257,57 @@ onMounted(carregar)
             <template v-if="c.tipo === 'beneficio'">
               <div>Entra dia {{ c.dia_recarga }}</div>
               <div>{{ c.acumula ? 'Acumula' : 'Não acumula' }}</div>
-  </template>
+      <!-- dar baixa na fatura -->
+    <div v-if="quitando" class="veu" @click.self="quitando = null">
+      <div class="painel">
+        <div class="painel-topo">
+          <h2>Dar baixa na fatura</h2>
+          <button class="fechar" @click="quitando = null"><i class="mi">close</i></button>
+        </div>
+
+        <div class="painel-corpo">
+          <div class="cartao" style="margin-bottom:16px">
+            <div class="entre">
+              <div>
+                <strong>{{ quitando.cartao.nome }}</strong>
+                <div class="pequeno mudo">
+                  Fatura de {{ dataBr(quitando.competencia) }}
+                </div>
+              </div>
+              <div class="direita">
+                <div class="num saida" style="font-size:1.2rem">
+                  {{ dinheiro(quitando.valor) }}
+                </div>
+                <div v-if="quitando.vencimento" class="pequeno mudo">
+                  vence {{ dataBr(quitando.vencimento) }}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="campo">
+            <label>Quando você pagou</label>
+            <input v-model="dataQuitacao" type="date" :max="hojeISO()" />
+          </div>
+
+          <div v-if="quitando.vencimento && dataQuitacao < quitando.vencimento"
+               class="aviso pequeno">
+            Pagamento antecipado. O valor sai do caixa em
+            {{ dataBr(dataQuitacao) }}, não no vencimento.
+          </div>
+
+          <div v-if="erro" class="aviso mal" style="margin-top:12px">{{ erro }}</div>
+        </div>
+
+        <div class="painel-pe">
+          <button class="btn claro" @click="quitando = null">Cancelar</button>
+          <button class="btn" :disabled="salvandoQuitacao" @click="quitar">
+            {{ salvandoQuitacao ? 'Guardando…' : 'Confirmar pagamento' }}
+          </button>
+        </div>
+      </div>
+    </div>
+</template>
             <template v-else>
               <div>Vira dia {{ c.dia_fechamento }}</div>
               <div>Vence dia {{ c.dia_vencimento }}</div>
@@ -269,6 +359,23 @@ onMounted(carregar)
             {{ c.itens_fechada }} lançamento(s) · vence em
             {{ dataBr(c.vencimento_fechada) }}
           </div>
+          <button class="btn mini" style="margin-top:10px"
+                  @click="abrirQuitacao(c, 'fechada')">
+            <i class="mi">check</i>Dar baixa
+          </button>
+        </div>
+
+        <!-- já quitada, mesmo antes do vencimento -->
+        <div v-else-if="c.tipo !== 'beneficio' && c.fechada_paga" class="fatura quitada">
+          <div class="entre">
+            <span class="rotulo" style="color:#0A7038">Fatura anterior</span>
+            <span class="eti pago">paga</span>
+          </div>
+          <div class="selo-valor entrada">{{ dinheiro(c.fechada_paga_valor) }}</div>
+          <div class="pequeno mudo">
+            Paga em {{ dataBr(c.fechada_paga_em) }}
+            <button class="botao-texto" @click="desfazerQuitacao(c)">desfazer</button>
+          </div>
         </div>
 
         <!-- fatura que ainda acumula -->
@@ -282,6 +389,13 @@ onMounted(carregar)
             {{ c.itens_aberta }} lançamento(s) · vira em {{ dataBr(c.fecha_em) }}
             <span v-if="c.vencimento_aberta">· vence {{ dataBr(c.vencimento_aberta) }}</span>
           </div>
+          <div v-if="c.aberta_paga" class="pequeno entrada" style="margin-top:6px">
+            <strong>Já paga.</strong>
+          </div>
+          <button v-else-if="c.total_aberta" class="btn claro mini" style="margin-top:10px"
+                  @click="abrirQuitacao(c, 'aberta')">
+            Adiantar pagamento
+          </button>
         </div>
 
         <div v-if="c.limite && c.tipo !== 'beneficio'" style="margin-top:10px">
@@ -483,6 +597,14 @@ onMounted(carregar)
 </template>
 
 <style scoped>
+.fatura.quitada {
+  background: var(--entrada-fraco); border: 1px solid #BEE8D1;
+  border-radius: 11px; padding: 11px 13px; margin-top: 14px;
+}
+.botao-texto {
+  background: none; border: 0; padding: 0; font: inherit; font-size: .78rem;
+  color: var(--laranja); text-decoration: underline; cursor: pointer;
+}
 .fatura.fechada {
   background: var(--saida-fraco); border: 1px solid #F3C9CB;
   border-radius: 11px; padding: 11px 13px; margin-top: 14px;
